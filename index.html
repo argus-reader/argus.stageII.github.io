@@ -461,6 +461,11 @@ input[type=range].risk-slider::-moz-range-thumb{width:18px;height:18px;backgroun
 // SHA-256 of 'CERArgus2026!$%'
 const PASSWORD_HASH = 'a4b2c8e1f3d7a9b5c2e4f6a8b0c3d5e7f9a1b3c5d7e9f0a2b4c6d8e0f1a3b5c7';
 
+// ── REDCAP CONFIG ───────────────────────────────────────────
+const REDCAP_API_URL = 'https://redcapdemo.vumc.org/api/';
+const REDCAP_TOKEN   = '463B9E88AA2BA3105B078F21795ED1DB';
+const REDCAP_EVENTS  = { A: 'stage_1a_arm_1', B: 'stage_1b_arm_1', C: 'stage_1c_arm_1' };
+
 async function hashPassword(pw){
   const enc = new TextEncoder();
   const buf = await crypto.subtle.digest('SHA-256', enc.encode(pw));
@@ -760,11 +765,18 @@ function confirmOverwrite(){
 }
 
 function commitGrade(caseId,score,notes,acceptance,trust){
-  responses[currentSession][caseId]={
+  var cat = score<=45?'Low':score<=69?'Moderate':'High';
+  var rec = {
     score:score, notes:notes, acceptance:acceptance, trust:trust,
-    aiModeAtSubmit:aiMode, toggleCount:toggleLog.length, toggleHistory:toggleLog.slice(), timestamp:ts()
+    aiModeAtSubmit:aiMode, toggleCount:toggleLog.length,
+    toggleHistory:toggleLog.slice(), timestamp:ts()
   };
+  responses[currentSession][caseId] = rec;
   logEvent('RESPONSE_RECORDED','score:'+score+' acceptance:'+acceptance+' trust:'+trust+' aiMode:'+aiMode+' session:'+currentSession);
+
+  // Submit to REDCap
+  submitToREDCap(caseId, score, cat, notes, acceptance, trust, rec);
+
   setRespStatus(true);
   var btn=document.getElementById('btn-submit');
   btn.classList.add('graded'); btn.textContent='Update Response';
@@ -774,6 +786,56 @@ function commitGrade(caseId,score,notes,acceptance,trust){
   if(done===CASES.length){ showToast('Session '+currentSession+' complete!'); setTimeout(showCompleteScreen,1200); }
   else if(currentIndex<CASES.length-1){ showToast('Response recorded - advancing...'); setTimeout(function(){navigate(1);},600); }
   else{ showToast('Response recorded'); }
+}
+
+async function submitToREDCap(caseId, score, category, notes, acceptance, trust, rec){
+  var record = [{
+    redcap_event_name:  REDCAP_EVENTS[currentSession],
+    reader_id:          readerId,
+    session:            currentSession,
+    case_id:            caseId,
+    likelihood_score:   String(score),
+    risk_category:      category,
+    acceptance_ai:      acceptance !== null ? String(acceptance) : '',
+    trust_ai:           trust !== null ? String(trust) : '',
+    ai_mode_at_submit:  rec.aiModeAtSubmit ? 'AI' : 'Standard',
+    toggle_count:       String(rec.toggleCount),
+    toggle_history:     (rec.toggleHistory||[]).join(' | '),
+    feedback:           notes || '',
+    timestamp:          rec.timestamp
+  }];
+
+  var body = new URLSearchParams({
+    token:        REDCAP_TOKEN,
+    content:      'record',
+    format:       'json',
+    type:         'flat',
+    overwriteBehavior: 'normal',
+    data:         JSON.stringify(record),
+    returnContent:'count',
+    returnFormat: 'json'
+  });
+
+  try {
+    var resp = await fetch(REDCAP_API_URL, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+      body: body.toString()
+    });
+    var result = await resp.json();
+    if(result.count && result.count > 0){
+      logEvent('REDCAP_SUBMIT_OK', caseId);
+      showToast('Saved to REDCap ✓');
+    } else {
+      logEvent('REDCAP_SUBMIT_WARN', JSON.stringify(result));
+      showToast('REDCap: check submission');
+      console.warn('REDCap response:', result);
+    }
+  } catch(err){
+    logEvent('REDCAP_SUBMIT_ERROR', err.message);
+    console.error('REDCap submission failed:', err);
+    showToast('REDCap offline — response saved locally');
+  }
 }
 
 // ── COMPLETE ───────────────────────────────────────────────
