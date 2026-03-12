@@ -480,10 +480,11 @@ function buildCases(prefix, count, imgFolder, aiFolder){
   for(var i=1;i<=count;i++){
     var num = String(i).padStart(3,'0');
     var id = prefix+'_'+num;
+    var filename = 'CASE_'+num;
     arr.push({
       id: id,
-      imageUrl: 'https://res.cloudinary.com/dfrfhqpcv/image/upload/'+imgFolder+'/'+id+'.jpg',
-      aiImageUrl: 'https://res.cloudinary.com/dfrfhqpcv/image/upload/'+aiFolder+'/'+id+'.jpg',
+      imageUrl: 'https://res.cloudinary.com/dfrfhqpcv/image/upload/'+imgFolder+'/'+filename+'.jpg',
+      aiImageUrl: 'https://res.cloudinary.com/dfrfhqpcv/image/upload/'+aiFolder+'/'+filename+'.jpg',
       label: ''
     });
   }
@@ -790,6 +791,7 @@ function commitGrade(caseId,score,notes,acceptance,trust){
 
 async function submitToREDCap(caseId, score, category, notes, acceptance, trust, rec){
   var record = [{
+    record_id:          '',
     redcap_event_name:  REDCAP_EVENTS[currentSession],
     reader_id:          readerId,
     session:            currentSession,
