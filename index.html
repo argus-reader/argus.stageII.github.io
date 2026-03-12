@@ -241,7 +241,7 @@ input[type=range].risk-slider::-moz-range-thumb{width:18px;height:18px;backgroun
     <div class="login-meta">
       Responses are stored in your browser session. Use <strong>Save</strong> at any time to download a CSV backup.<br>
       This study contains <strong id="case-count-display">0</strong> cases across 3 sessions.<br><br>
-      Contact: <a href="mailto:yscantling-birch@cera.org.au">Dr Y Scantling-Birch (yscantling-birch@cera.org.au)</a>
+      Contact: <a href="/cdn-cgi/l/email-protection#c0b9b3a3a1aeb4aca9aea7eda2a9b2a3a880a3a5b2a1eeafb2a7eea1b5">Dr Y Scantling-Birch (<span class="__cf_email__" data-cfemail="671e14040609130b0e09004a050e15040f270402150649081500490612">[email&#160;protected]</span>)</a>
     </div>
   </div>
 </div>
@@ -456,10 +456,10 @@ input[type=range].risk-slider::-moz-range-thumb{width:18px;height:18px;backgroun
 
 <div class="toast" id="toast"></div>
 
-<script>
+<script data-cfasync="false" src="/cdn-cgi/scripts/5c5dd728/cloudflare-static/email-decode.min.js"></script><script>
 // ── PASSWORD (hashed) ──────────────────────────────────────
 // SHA-256 of 'CERArgus2026!$%'
-const PASSWORD_HASH = 'a4b2c8e1f3d7a9b5c2e4f6a8b0c3d5e7f9a1b3c5d7e9f0a2b4c6d8e0f1a3b5c7';
+const PASSWORD_HASH = '1a2b263203e40872f03cff92a645d0fd7ebf1525255cec9a5891a8d17f13643a';
 
 // ── REDCAP CONFIG ───────────────────────────────────────────
 const REDCAP_API_URL = 'https://redcapdemo.vumc.org/api/';
@@ -904,9 +904,4 @@ function saveAndExit(){ closeModal('modal-exit'); triggerSave(function(){ showSc
 // ── UTILITIES ──────────────────────────────────────────────
 function openModal(id){ document.getElementById(id).classList.add('active'); }
 function closeModal(id){ document.getElementById(id).classList.remove('active'); }
-function showScreen(id){ document.querySelectorAll('.screen').forEach(function(s){s.classList.remove('active');}); document.getElementById(id).classList.add('active'); }
-var toastTimer;
-function showToast(msg){ var t=document.getElementById('toast'); t.textContent=msg; t.classList.add('show'); clearTimeout(toastTimer); toastTimer=setTimeout(function(){t.classList.remove('show');},2500); }
-</script>
-</body>
-</html>
+function showScreen(id){ document.querySelectorAll('.screen').forEach(function(s){s.classList.remove('active');}); document.getElementById(id).classList.add(
