@@ -1,0 +1,915 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"><!-- ARGUS v2.1 -->
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ARGUS Reader Study</title>
+<link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@300;400;500&family=Fraunces:ital,opsz,wght@0,9..144,300;0,9..144,600;1,9..144,300&display=swap" rel="stylesheet">
+<style>
+:root{
+  --bg:#0a0c0f;--surface:#111318;--surface2:#181c22;
+  --border:#252a33;--border-bright:#3a4150;
+  --text:#ffffff;--text-muted:#a0aab8;--text-dim:#6b7585;
+  --accent:#4af0c4;--accent-dim:rgba(74,240,196,0.12);--accent-mid:rgba(74,240,196,0.4);
+  --warn:#f0a44a;--danger:#f06060;--ai-color:#ff4444;
+  --mono:'DM Mono',monospace;--serif:'Fraunces',Georgia,serif;
+}
+*{margin:0;padding:0;box-sizing:border-box;}
+html,body{height:100%;width:100%;overflow:hidden;}
+body{background:var(--bg);color:var(--text);font-family:var(--mono);font-size:13px;}
+body::before{content:'';position:fixed;inset:0;background-image:linear-gradient(rgba(74,240,196,0.03) 1px,transparent 1px),linear-gradient(90deg,rgba(74,240,196,0.03) 1px,transparent 1px);background-size:40px 40px;pointer-events:none;z-index:0;}
+.screen{display:none;position:relative;z-index:1;}
+.screen.active{display:flex;}
+
+/* ── LOGIN ── */
+#login-screen{height:100vh;width:100vw;flex-direction:column;align-items:center;justify-content:center;padding:40px 20px;overflow-y:auto;}
+.login-box{width:100%;max-width:460px;border:1px solid var(--border-bright);background:var(--surface);padding:48px 40px;position:relative;animation:fadeUp .5s ease both;}
+.login-box::before{content:'';position:absolute;top:-1px;left:-1px;right:-1px;height:2px;background:linear-gradient(90deg,transparent,var(--accent),transparent);}
+.study-badge{font-size:10px;letter-spacing:.2em;text-transform:uppercase;color:var(--accent);margin-bottom:24px;display:flex;align-items:center;justify-content:center;gap:8px;}
+.study-badge::before{content:'';width:20px;height:1px;background:var(--accent);}.study-badge::after{content:'';width:20px;height:1px;background:var(--accent);}
+.login-title{font-family:var(--serif);font-size:26px;font-weight:300;line-height:1.25;margin-bottom:4px;color:var(--accent);text-align:center;}
+.login-title em{font-style:italic;color:var(--accent);}
+.login-task{font-size:17px;color:var(--text);margin-bottom:24px;font-weight:400;text-align:center;}
+.consent-link{display:block;background:rgba(74,240,196,0.08);border:1px solid var(--accent-mid);padding:12px 16px;margin-bottom:20px;font-size:11px;color:var(--text-muted);line-height:1.6;text-decoration:none;text-align:justify;}
+.consent-link strong{color:var(--accent);display:block;margin-bottom:3px;}
+.consent-link:hover{background:rgba(74,240,196,0.14);border-color:var(--accent);}
+.login-subtitle{color:var(--text-muted);font-size:11px;line-height:1.6;margin-bottom:24px;text-align:justify;}
+.field-label{font-size:10px;letter-spacing:.15em;text-transform:uppercase;color:var(--text-muted);margin-bottom:8px;display:block;}
+.field-input{width:100%;background:var(--bg);border:1px solid var(--border);color:var(--text);font-family:var(--mono);font-size:14px;padding:12px 16px;outline:none;transition:border-color .2s;margin-bottom:16px;}
+.field-input:focus{border-color:var(--accent);}
+.btn-primary{width:100%;background:var(--accent);color:#000;border:none;font-family:var(--mono);font-size:12px;font-weight:500;letter-spacing:.12em;text-transform:uppercase;padding:14px 24px;cursor:pointer;transition:all .2s;}
+.btn-primary:hover{background:#fff;transform:translateY(-1px);}
+.login-error{color:var(--danger);font-size:11px;margin-top:10px;display:none;}
+.login-meta{margin-top:24px;padding-top:20px;border-top:1px solid var(--border);color:var(--text-muted);font-size:11px;line-height:1.7;text-align:justify;}
+.login-meta a{color:var(--accent);text-decoration:none;}
+
+/* ── SESSION TABS ── */
+.session-tabs{display:flex;gap:0;margin-bottom:0;border-bottom:1px solid var(--border);}
+.session-tab{flex:1;padding:10px 6px;font-family:var(--mono);font-size:10px;letter-spacing:.1em;text-transform:uppercase;background:transparent;border:none;border-right:1px solid var(--border);color:var(--text-muted);cursor:pointer;transition:all .2s;position:relative;}
+.session-tab:last-child{border-right:none;}
+.session-tab:hover{color:var(--text);background:var(--surface2);}
+.session-tab.active{color:var(--accent);background:var(--surface2);}
+.session-tab.active::after{content:'';position:absolute;bottom:-1px;left:0;right:0;height:2px;background:var(--accent);}
+.session-tab .tab-progress{font-size:9px;color:var(--text-dim);display:block;margin-top:2px;}
+.session-tab.active .tab-progress{color:var(--accent-mid);}
+.reader-tab{background:var(--surface2);border-left:1px solid var(--border);padding:10px 14px;font-size:10px;color:var(--text-muted);display:flex;align-items:center;gap:6px;white-space:nowrap;flex-shrink:0;}
+.reader-tab strong{color:var(--accent);}
+
+/* ── STUDY SCREEN ── */
+#study-screen{height:100vh;width:100vw;flex-direction:column;overflow:hidden;}
+.study-header{display:flex;align-items:center;justify-content:space-between;padding:10px 18px;border-bottom:1px solid var(--border);background:var(--surface);flex-shrink:0;gap:12px;flex-wrap:wrap;}
+.header-left{display:flex;align-items:center;gap:12px;flex-shrink:0;}
+.header-logo{font-family:var(--serif);font-size:14px;font-weight:300;white-space:nowrap;color:var(--text);}
+.header-logo span{color:var(--accent);font-style:italic;}
+.header-divider{width:1px;height:18px;background:var(--border-bright);}
+.progress-section{flex:1;min-width:130px;max-width:240px;}
+.progress-labels{display:flex;justify-content:space-between;font-size:10px;color:var(--text-muted);margin-bottom:5px;}
+.progress-track{height:3px;background:var(--border);overflow:hidden;}
+.progress-fill{height:100%;background:var(--accent);transition:width .4s ease;}
+.header-right{display:flex;align-items:center;gap:6px;flex-shrink:0;}
+.btn-hdr{background:transparent;border:1px solid var(--border-bright);color:var(--text-muted);font-family:var(--mono);font-size:10px;letter-spacing:.1em;text-transform:uppercase;padding:6px 10px;cursor:pointer;transition:all .2s;white-space:nowrap;}
+.btn-hdr:hover{border-color:var(--accent);color:var(--accent);}
+.btn-hdr-exit:hover{border-color:var(--danger)!important;color:var(--danger)!important;}
+
+/* ── IMAGE PANEL ── */
+.study-body{flex:1;display:grid;grid-template-columns:1fr 370px;min-height:0;overflow:hidden;}
+.image-panel{background:#060809;display:flex;align-items:center;justify-content:center;position:relative;overflow:hidden;border-right:1px solid var(--border);}
+.image-panel::after{content:'';position:absolute;inset:0;background:radial-gradient(ellipse at center,transparent 60%,rgba(0,0,0,.6) 100%);pointer-events:none;z-index:1;}
+.case-image{max-width:90%;max-height:90%;object-fit:contain;display:block;border:1px solid var(--border);transform-origin:center;cursor:grab;user-select:none;}
+.case-image:active{cursor:grabbing;}
+.case-image.panning{cursor:grabbing;}
+.image-placeholder{display:flex;flex-direction:column;align-items:center;gap:14px;color:var(--text-dim);}
+.image-placeholder svg{opacity:.3;}
+.image-placeholder p{font-size:11px;letter-spacing:.1em;text-transform:uppercase;color:var(--text-muted);}
+.case-overlay{position:absolute;top:14px;left:14px;z-index:5;background:rgba(10,12,15,.88);border:1px solid var(--border);padding:7px 13px;backdrop-filter:blur(4px);}
+.case-overlay-id{font-size:10px;letter-spacing:.15em;text-transform:uppercase;color:var(--text-muted);}
+.case-overlay-num{font-size:17px;font-family:var(--serif);font-weight:300;line-height:1.2;color:var(--text);}
+
+/* AI MODE BANNER */
+.ai-banner{position:absolute;top:14px;right:14px;z-index:5;display:none;align-items:center;gap:8px;background:rgba(255,68,68,0.15);border:1px solid var(--ai-color);padding:7px 13px;backdrop-filter:blur(4px);}
+.ai-banner.visible{display:flex;}
+.ai-banner-text{font-size:11px;color:var(--ai-color);font-weight:500;letter-spacing:.08em;}
+
+/* ZOOM + DRAG CONTROLS */
+.zoom-controls{position:absolute;bottom:14px;left:14px;z-index:5;display:flex;gap:4px;align-items:center;}
+.zoom-btn{width:30px;height:30px;background:rgba(10,12,15,.88);border:1px solid var(--border);color:var(--text-muted);font-size:15px;cursor:pointer;display:flex;align-items:center;justify-content:center;transition:all .15s;backdrop-filter:blur(4px);}
+.zoom-btn:hover{border-color:var(--accent);color:var(--accent);}
+.drag-hint{font-size:9px;color:var(--text-dim);letter-spacing:.08em;text-transform:uppercase;margin-left:4px;}
+
+/* AI TOGGLE */
+.ai-toggle-wrap{position:absolute;bottom:14px;right:14px;z-index:5;}
+.ai-toggle-btn{display:flex;align-items:center;gap:8px;background:rgba(10,12,15,.88);border:1px solid var(--border-bright);color:var(--text-muted);font-family:var(--mono);font-size:10px;letter-spacing:.1em;text-transform:uppercase;padding:8px 14px;cursor:pointer;transition:all .2s;backdrop-filter:blur(4px);}
+.ai-toggle-btn:hover{border-color:var(--accent);color:var(--accent);}
+.ai-toggle-btn.ai-active{border-color:var(--ai-color);color:var(--ai-color);background:rgba(255,68,68,0.12);}
+.toggle-dot{width:8px;height:8px;border-radius:50%;background:var(--border-bright);transition:all .3s;flex-shrink:0;}
+.ai-toggle-btn.ai-active .toggle-dot{background:var(--ai-color);box-shadow:0 0 6px var(--ai-color);}
+
+/* ── GRADING PANEL ── */
+.grading-panel{background:var(--surface);display:flex;flex-direction:column;overflow-y:auto;overflow-x:hidden;}
+.g-section{padding:16px 20px;border-bottom:1px solid var(--border);flex-shrink:0;}
+.sec-label{font-size:9px;letter-spacing:.2em;text-transform:uppercase;color:var(--text-dim);margin-bottom:8px;}
+.grading-title{font-family:var(--serif);font-size:17px;font-weight:300;line-height:1.3;margin-bottom:4px;color:var(--text);}
+.grading-instr{font-size:11px;color:var(--text-muted);line-height:1.6;}
+.resp-status{display:inline-flex;align-items:center;gap:5px;font-size:10px;letter-spacing:.08em;text-transform:uppercase;padding:5px 10px;border:1px solid;margin-top:10px;}
+.resp-status.recorded{color:var(--accent);border-color:var(--accent-mid);background:var(--accent-dim);}
+.resp-status.not-rec{color:var(--text-dim);border-color:var(--border);}
+
+/* LIKELIHOOD */
+.likelihood-section{padding:16px 20px;border-bottom:1px solid var(--border);flex-shrink:0;}
+.lh-value-row{display:flex;align-items:baseline;gap:4px;margin-bottom:12px;}
+.lh-number{font-family:var(--serif);font-size:48px;font-weight:300;line-height:1;transition:color .3s;min-width:68px;color:var(--text);}
+.lh-pct{font-size:16px;color:var(--text-muted);}
+.lh-label{font-size:11px;color:var(--text-muted);margin-left:auto;text-align:right;transition:color .3s;}
+.slider-wrap{position:relative;margin-bottom:4px;}
+.slider-track{height:6px;background:var(--surface2);border:1px solid var(--border);position:relative;}
+.slider-fill{height:100%;position:absolute;left:0;top:0;transition:width .04s,background .3s;pointer-events:none;}
+input[type=range].risk-slider{-webkit-appearance:none;appearance:none;position:absolute;top:50%;left:0;transform:translateY(-50%);width:100%;height:22px;background:transparent;margin:0;cursor:grab;outline:none;}
+input[type=range].risk-slider::-webkit-slider-thumb{-webkit-appearance:none;width:18px;height:18px;background:var(--text);border:2px solid var(--bg);border-radius:0;box-shadow:0 0 0 1px var(--border-bright),0 2px 8px rgba(0,0,0,.5);transition:background .2s;cursor:grab;}
+input[type=range].risk-slider::-webkit-slider-thumb:hover{background:var(--accent);box-shadow:0 0 0 1px var(--accent),0 0 12px var(--accent-mid);}
+input[type=range].risk-slider::-moz-range-thumb{width:18px;height:18px;background:var(--text);border:2px solid var(--bg);border-radius:0;}
+.slider-ticks{position:relative;height:8px;margin-bottom:4px;}
+.slider-ticks span{position:absolute;width:1px;height:100%;background:var(--border);transform:translateX(-50%);}
+.slider-ticks span.major{background:var(--border-bright);}
+.slider-scale{display:flex;justify-content:space-between;margin-top:4px;margin-bottom:10px;}
+.slider-scale span{font-size:9px;color:var(--text-muted);}
+.manual-input-row{display:flex;align-items:center;gap:8px;margin-top:8px;}
+.manual-input-label{font-size:10px;color:var(--text-muted);letter-spacing:.05em;flex-shrink:0;}
+.manual-score-input{width:70px;background:var(--bg);border:1px solid var(--border);color:var(--text);font-family:var(--mono);font-size:13px;padding:6px 10px;outline:none;text-align:center;transition:border-color .2s;}
+.manual-score-input:focus{border-color:var(--accent);}
+.manual-hint{font-size:9px;color:var(--text-dim);}
+
+/* LIKERT */
+.likert-section{padding:14px 20px;border-bottom:1px solid var(--border);flex-shrink:0;}
+.likert-item{margin-bottom:14px;}
+.likert-item:last-child{margin-bottom:0;}
+.likert-label{font-size:10px;letter-spacing:.1em;text-transform:uppercase;color:var(--text-muted);margin-bottom:6px;display:flex;justify-content:space-between;align-items:center;}
+.likert-label span{font-size:9px;color:var(--accent);}
+.likert-anchors{display:flex;justify-content:space-between;font-size:9px;color:var(--text-dim);margin-bottom:4px;}
+.likert-options{display:flex;gap:4px;}
+.likert-option{flex:1;display:flex;flex-direction:column;align-items:center;cursor:pointer;}
+.likert-option input[type=radio]{display:none;}
+.likert-btn{width:100%;padding:7px 2px;border:1px solid var(--border);background:var(--bg);color:var(--text-muted);font-family:var(--mono);font-size:11px;text-align:center;cursor:pointer;transition:all .2s;}
+.likert-option input:checked + .likert-btn{border-color:var(--accent);color:var(--accent);background:var(--accent-dim);}
+.likert-btn:hover{border-color:var(--border-bright);color:var(--text);}
+
+/* NOTES */
+.notes-section{padding:12px 20px;border-bottom:1px solid var(--border);flex-shrink:0;}
+.notes-input{width:100%;background:var(--bg);border:1px solid var(--border);color:var(--text);font-family:var(--mono);font-size:12px;padding:9px 13px;resize:vertical;min-height:54px;outline:none;line-height:1.6;}
+.notes-input:focus{border-color:var(--accent-mid);}
+.notes-input::placeholder{color:var(--text-dim);}
+
+/* NAV */
+.nav-section{padding:12px 20px;display:flex;gap:6px;flex-shrink:0;margin-top:auto;}
+.btn-nav{flex:1;background:transparent;border:1px solid var(--border-bright);color:var(--text-muted);font-family:var(--mono);font-size:10px;letter-spacing:.12em;text-transform:uppercase;padding:10px 4px;cursor:pointer;transition:all .2s;}
+.btn-nav:hover:not(:disabled){border-color:var(--text-muted);color:var(--text);}
+.btn-nav:disabled{opacity:.25;cursor:not-allowed;}
+.btn-submit{flex:2;background:var(--accent);border:none;color:#000;font-family:var(--mono);font-size:11px;font-weight:500;letter-spacing:.12em;text-transform:uppercase;padding:10px 4px;cursor:pointer;transition:all .2s;}
+.btn-submit:hover{background:#fff;}
+.btn-submit.graded{background:var(--accent-dim);border:1px solid var(--accent-mid);color:var(--accent);}
+
+/* COMPLETE */
+#complete-screen{height:100vh;width:100vw;flex-direction:column;align-items:center;justify-content:center;padding:40px 20px;overflow-y:auto;}
+.complete-box{max-width:500px;width:100%;text-align:center;animation:fadeUp .5s ease both;}
+.complete-icon{width:54px;height:54px;border:1px solid var(--accent);border-radius:50%;display:flex;align-items:center;justify-content:center;margin:0 auto 22px;color:var(--accent);font-size:22px;animation:pulse-glow 2s ease-in-out infinite;}
+@keyframes pulse-glow{0%,100%{box-shadow:0 0 0 0 var(--accent-dim);}50%{box-shadow:0 0 0 12px transparent;}}
+.complete-title{font-family:var(--serif);font-size:30px;font-weight:300;margin-bottom:10px;color:var(--text);}
+.complete-title em{font-style:italic;color:var(--accent);}
+.complete-sub{color:var(--text-muted);font-size:12px;line-height:1.7;margin-bottom:24px;}
+.complete-stats{display:grid;grid-template-columns:1fr 1fr 1fr;gap:1px;background:var(--border);border:1px solid var(--border);margin-bottom:22px;}
+.stat-cell{background:var(--surface);padding:16px;}
+.stat-value{font-family:var(--serif);font-size:26px;font-weight:300;color:var(--accent);}
+.stat-label{font-size:9px;letter-spacing:.15em;text-transform:uppercase;color:var(--text-dim);margin-top:4px;}
+.btn-download{display:inline-flex;align-items:center;gap:10px;background:var(--accent);border:none;color:#000;font-family:var(--mono);font-size:11px;font-weight:500;letter-spacing:.15em;text-transform:uppercase;padding:13px 26px;cursor:pointer;transition:all .2s;}
+.btn-download:hover{background:#fff;transform:translateY(-2px);}
+
+/* MODALS */
+.modal-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.78);z-index:200;align-items:center;justify-content:center;backdrop-filter:blur(3px);}
+.modal-overlay.active{display:flex;}
+.modal-box{background:var(--surface);border:1px solid var(--border-bright);max-width:420px;width:90%;padding:34px 30px;position:relative;animation:fadeUp .2s ease both;}
+.modal-box::before{content:'';position:absolute;top:-1px;left:-1px;right:-1px;height:2px;background:linear-gradient(90deg,transparent,var(--warn),transparent);}
+.modal-box.danger-modal::before{background:linear-gradient(90deg,transparent,var(--danger),transparent);}
+.modal-icon{font-size:22px;margin-bottom:14px;}
+.modal-title{font-family:var(--serif);font-size:19px;font-weight:300;margin-bottom:9px;color:var(--text);}
+.modal-body{font-size:12px;color:var(--text-muted);line-height:1.7;margin-bottom:26px;}
+.modal-actions{display:flex;gap:9px;}
+.btn-m-cancel{flex:1;background:transparent;border:1px solid var(--border-bright);color:var(--text-muted);font-family:var(--mono);font-size:10px;letter-spacing:.12em;text-transform:uppercase;padding:11px;cursor:pointer;transition:all .2s;}
+.btn-m-cancel:hover{border-color:var(--text-muted);color:var(--text);}
+.btn-m-confirm{flex:1;background:var(--accent);border:none;color:#000;font-family:var(--mono);font-size:10px;font-weight:500;letter-spacing:.12em;text-transform:uppercase;padding:11px;cursor:pointer;transition:all .2s;}
+.btn-m-confirm:hover{background:#fff;}
+.btn-m-danger{background:var(--danger);color:#fff;}
+.btn-m-danger:hover{background:#ff8888!important;}
+
+/* SAVE OVERLAY */
+.save-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.88);z-index:300;align-items:center;justify-content:center;flex-direction:column;gap:18px;backdrop-filter:blur(4px);}
+.save-overlay.active{display:flex;}
+.save-title{font-family:var(--serif);font-size:17px;font-weight:300;letter-spacing:.04em;color:var(--text);}
+.save-track{width:260px;height:4px;background:var(--border);border:1px solid var(--border-bright);overflow:hidden;}
+.save-bar{height:100%;background:var(--accent);width:0%;box-shadow:0 0 8px var(--accent-mid);transition:width .05s linear;}
+.save-label{font-size:10px;letter-spacing:.15em;text-transform:uppercase;color:var(--text-muted);}
+.toast{position:fixed;bottom:22px;left:50%;transform:translateX(-50%) translateY(80px);background:var(--surface2);border:1px solid var(--border-bright);color:var(--text);font-size:11px;padding:9px 18px;letter-spacing:.05em;transition:transform .3s ease;z-index:400;pointer-events:none;white-space:nowrap;}
+.toast.show{transform:translateX(-50%) translateY(0);}
+@keyframes fadeUp{from{opacity:0;transform:translateY(16px);}to{opacity:1;transform:translateY(0);}}
+::-webkit-scrollbar{width:4px;}::-webkit-scrollbar-track{background:transparent;}::-webkit-scrollbar-thumb{background:var(--border-bright);}
+@media(max-width:680px){.study-body{grid-template-columns:1fr;grid-template-rows:1fr auto;}.image-panel{min-height:38vh;}.grading-panel{max-height:62vh;}}
+</style>
+</head>
+<body>
+
+<!-- ══ LOGIN ══ -->
+<div id="login-screen" class="screen active">
+  <div class="login-box">
+    <div class="study-badge">Reader Study &middot; Ophthalmology</div>
+    <h1 class="login-title"><em>ARGUS</em></h1>
+    <p class="login-task">AI-based Report for Glaucoma Detection: User-centered Study</p>
+
+    <a class="consent-link" href="https://redcapdemo.vumc.org/surveys/?s=H7JLKDWXK77LCTJH" target="_blank">
+      <strong>&#128196; Consent Form — Please read before continuing</strong>
+      Please read and complete the following consent form to participate in the study. Your time would be greatly appreciated.
+    </a>
+
+    <p class="login-subtitle">A reader study evaluating the likelihood of glaucomatous visual field defect (GVFD) from optical coherence tomography (OCT)-based reports. Each case presents one image for independent assessment. Please use your allocated Reader ID.</p>
+
+    <label class="field-label" for="reader-id">Reader ID</label>
+    <input class="field-input" type="text" id="reader-id" placeholder="e.g. ARGUS001" autocomplete="off">
+
+    <label class="field-label" for="study-password">Study Password</label>
+    <input class="field-input" type="password" id="study-password" placeholder="Enter study password" autocomplete="off" style="margin-bottom:20px;">
+
+    <button class="btn-primary" onclick="startStudy()">Begin Study &rarr;</button>
+    <div class="login-error" id="login-error">Please enter a valid Reader ID and password to continue.</div>
+
+    <div class="login-meta">
+      Responses are stored in your browser session. Use <strong>Save</strong> at any time to download a CSV backup. This study contains <strong id="case-count-display">0</strong> cases across 3 sessions.<br><br><div style="text-align:center;">For more information, contact below:</div>
+      <div style="display:flex;align-items:center;justify-content:center;gap:8px;margin-top:8px;color:var(--accent);font-size:10px;letter-spacing:.2em;text-transform:uppercase;"><span style="width:20px;height:1px;background:var(--accent);display:inline-block;"></span>📧 <a href="/cdn-cgi/l/email-protection#3d444e5e5c53495154535a105f544f5e557d5e584f5c13524f5a135c48" style="color:var(--accent);text-decoration:none;letter-spacing:.2em;">Dr Y Scantling-Birch</a><span style="width:20px;height:1px;background:var(--accent);display:inline-block;"></span></div>
+    </div>
+  </div>
+</div>
+
+<!-- ══ STUDY ══ -->
+<div id="study-screen" class="screen">
+  <div class="study-header">
+    <div class="header-left">
+      <div class="header-logo">ARGUS <span>Reader Study</span></div>
+      <div class="header-divider"></div>
+    </div>
+    <div class="progress-section">
+      <div class="progress-labels">
+        <span id="progress-label">Case 1 of 0</span>
+        <span id="progress-pct">0%</span>
+      </div>
+      <div class="progress-track">
+        <div class="progress-fill" id="progress-fill" style="width:0%"></div>
+      </div>
+    </div>
+    <div class="header-right">
+      <button class="btn-hdr" onclick="triggerSave()">Save</button>
+      <button class="btn-hdr" onclick="exportCSV(false)">Export CSV</button>
+      <button class="btn-hdr btn-hdr-exit" onclick="triggerExit()">Exit</button>
+    </div>
+  </div>
+
+  <!-- SESSION TABS -->
+  <div style="display:flex;background:var(--surface);border-bottom:1px solid var(--border);flex-shrink:0;">
+    <div class="session-tabs" style="flex:1;">
+      <button class="session-tab active" id="tab-a" onclick="switchSession('A')">
+        Session A
+        <span class="tab-progress" id="tab-prog-a">0/40</span>
+      </button>
+      <button class="session-tab" id="tab-b" onclick="switchSession('B')">
+        Session B
+        <span class="tab-progress" id="tab-prog-b">0/40</span>
+      </button>
+      <button class="session-tab" id="tab-c" onclick="switchSession('C')">
+        Session C
+        <span class="tab-progress" id="tab-prog-c">0/480</span>
+      </button>
+    </div>
+    <div class="reader-tab">Reader: <strong id="header-reader-id">--</strong></div>
+  </div>
+
+  <div class="study-body">
+    <!-- IMAGE PANEL -->
+    <div class="image-panel" id="image-panel">
+      <div class="case-overlay">
+        <div class="case-overlay-id">Case ID</div>
+        <div class="case-overlay-num" id="overlay-case-id">--</div>
+      </div>
+
+      <!-- AI MODE BANNER -->
+      <div class="ai-banner" id="ai-banner">
+        <span>🤖</span>
+        <span class="ai-banner-text">AI ASSIST MODE</span>
+      </div>
+
+      <div class="zoom-controls">
+        <button class="zoom-btn" onclick="adjustZoom(.2)" title="Zoom in">+</button>
+        <button class="zoom-btn" onclick="adjustZoom(-.2)" title="Zoom out">-</button>
+        <button class="zoom-btn" onclick="resetZoom()" style="font-size:11px" title="Reset zoom">Reset</button>
+        <span class="drag-hint" id="drag-hint" style="display:none;">&#9002; drag to pan</span>
+      </div>
+
+      <div class="ai-toggle-wrap">
+        <button class="ai-toggle-btn" id="ai-toggle-btn" onclick="toggleAI()">
+          <span class="toggle-dot" id="toggle-dot"></span>
+          <span id="ai-toggle-text">Standard View</span>
+        </button>
+      </div>
+
+      <img class="case-image" id="case-image" src="" alt="Fundus" style="display:none">
+      <div class="image-placeholder" id="image-placeholder">
+        <svg width="64" height="64" viewBox="0 0 72 72" fill="none">
+          <circle cx="36" cy="36" r="35" stroke="currentColor" stroke-width="1"/>
+          <circle cx="36" cy="36" r="20" stroke="currentColor" stroke-width="1" stroke-dasharray="4 3"/>
+          <circle cx="36" cy="36" r="6" fill="currentColor" opacity=".4"/>
+          <line x1="36" y1="1" x2="36" y2="12" stroke="currentColor" stroke-width="1"/>
+          <line x1="36" y1="60" x2="36" y2="71" stroke="currentColor" stroke-width="1"/>
+          <line x1="1" y1="36" x2="12" y2="36" stroke="currentColor" stroke-width="1"/>
+          <line x1="60" y1="36" x2="71" y2="36" stroke="currentColor" stroke-width="1"/>
+        </svg>
+        <p>No image loaded</p>
+      </div>
+    </div>
+
+    <!-- GRADING PANEL -->
+    <div class="grading-panel">
+      <div class="g-section">
+        <div class="sec-label">Task</div>
+        <div class="grading-title">Likelihood of Glaucomatous Visual Field Defect</div>
+        <div class="grading-instr">Rate the likelihood of a glaucomatous visual field defect from 0% (definitely absent) to 100% (definitely present), in 5% increments.</div>
+        <div class="resp-status not-rec" id="resp-status">No response recorded</div>
+      </div>
+
+      <div class="likelihood-section">
+        <div class="sec-label">Likelihood Score</div>
+        <div class="lh-value-row">
+          <div class="lh-number" id="lh-display">50</div>
+          <div class="lh-pct">%</div>
+          <div class="lh-label" id="lh-label">Uncertain</div>
+        </div>
+        <div class="slider-wrap">
+          <div class="slider-track">
+            <div class="slider-fill" id="slider-fill" style="width:50%;background:#6b7585"></div>
+            <input type="range" class="risk-slider" id="risk-slider" min="0" max="100" step="5" value="50" oninput="updateSlider(this.value)">
+          </div>
+        </div>
+        <div class="slider-ticks" id="slider-ticks"></div>
+        <div class="slider-scale">
+          <span>0 — Definitely absent</span>
+          <span>50 — Uncertain</span>
+          <span>100 — Definite</span>
+        </div>
+        <div class="manual-input-row">
+          <span class="manual-input-label">Manual entry:</span>
+          <input type="number" class="manual-score-input" id="manual-score" min="0" max="100" step="5" value="50" oninput="onManualInput(this.value)">
+          <span class="manual-hint">0–100, multiples of 5</span>
+        </div>
+      </div>
+
+      <div class="likert-section">
+        <div class="sec-label">AI Assessment</div>
+        <div class="likert-item">
+          <div class="likert-label">Acceptance of AI <span id="acceptance-val">—</span></div>
+          <div class="likert-anchors"><span>Not at all</span><span>Completely</span></div>
+          <div class="likert-options" id="likert-acceptance">
+            <label class="likert-option"><input type="radio" name="acceptance" value="1" onchange="onLikertChange('acceptance',1)"><div class="likert-btn">1</div></label>
+            <label class="likert-option"><input type="radio" name="acceptance" value="2" onchange="onLikertChange('acceptance',2)"><div class="likert-btn">2</div></label>
+            <label class="likert-option"><input type="radio" name="acceptance" value="3" onchange="onLikertChange('acceptance',3)"><div class="likert-btn">3</div></label>
+            <label class="likert-option"><input type="radio" name="acceptance" value="4" onchange="onLikertChange('acceptance',4)"><div class="likert-btn">4</div></label>
+            <label class="likert-option"><input type="radio" name="acceptance" value="5" onchange="onLikertChange('acceptance',5)"><div class="likert-btn">5</div></label>
+          </div>
+        </div>
+        <div class="likert-item">
+          <div class="likert-label">Trust of AI <span id="trust-val">—</span></div>
+          <div class="likert-anchors"><span>Not at all</span><span>Completely</span></div>
+          <div class="likert-options" id="likert-trust">
+            <label class="likert-option"><input type="radio" name="trust" value="1" onchange="onLikertChange('trust',1)"><div class="likert-btn">1</div></label>
+            <label class="likert-option"><input type="radio" name="trust" value="2" onchange="onLikertChange('trust',2)"><div class="likert-btn">2</div></label>
+            <label class="likert-option"><input type="radio" name="trust" value="3" onchange="onLikertChange('trust',3)"><div class="likert-btn">3</div></label>
+            <label class="likert-option"><input type="radio" name="trust" value="4" onchange="onLikertChange('trust',4)"><div class="likert-btn">4</div></label>
+            <label class="likert-option"><input type="radio" name="trust" value="5" onchange="onLikertChange('trust',5)"><div class="likert-btn">5</div></label>
+          </div>
+        </div>
+      </div>
+
+      <div class="notes-section">
+        <div class="sec-label">Feedback (optional)</div>
+        <textarea class="notes-input" id="notes-input"></textarea>
+      </div>
+
+      <div class="nav-section">
+        <button class="btn-nav" id="btn-prev" onclick="navigate(-1)" disabled>&larr; Back</button>
+        <button class="btn-submit" id="btn-submit" onclick="attemptSubmit()">Record Response</button>
+        <button class="btn-nav" id="btn-next" onclick="navigate(1)" disabled>Next &rarr;</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ══ COMPLETE ══ -->
+<div id="complete-screen" class="screen">
+  <div class="complete-box">
+    <div class="complete-icon">&#10003;</div>
+    <h2 class="complete-title">Session <em>Complete</em></h2>
+    <p class="complete-sub">All cases in this session have been assessed. Thank you for your participation. Download your responses as a CSV.</p>
+    <div class="complete-stats">
+      <div class="stat-cell"><div class="stat-value" id="stat-cases">0</div><div class="stat-label">Cases Graded</div></div>
+      <div class="stat-cell"><div class="stat-value" id="stat-mean">0%</div><div class="stat-label">Mean Score</div></div>
+      <div class="stat-cell"><div class="stat-value" id="stat-high">0</div><div class="stat-label">High Risk</div></div>
+    </div>
+    <button class="btn-download" onclick="exportCSV(false)">Download CSV Report</button>
+  </div>
+</div>
+
+<!-- MODAL: Overwrite -->
+<div class="modal-overlay" id="modal-overwrite">
+  <div class="modal-box">
+    <div class="modal-icon">&#9888;</div>
+    <div class="modal-title">Response Already Recorded</div>
+    <div class="modal-body">You have already recorded a response for this case. Would you like to overwrite it with your current score?</div>
+    <div class="modal-actions">
+      <button class="btn-m-cancel" onclick="closeModal('modal-overwrite')">No — Keep Original</button>
+      <button class="btn-m-confirm" onclick="confirmOverwrite()">Yes, happy to proceed</button>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL: Exit -->
+<div class="modal-overlay" id="modal-exit">
+  <div class="modal-box danger-modal">
+    <div class="modal-icon">&#128682;</div>
+    <div class="modal-title">Exit Study</div>
+    <div class="modal-body">Any unsaved responses will be lost. Save your progress before exiting?</div>
+    <div class="modal-actions">
+      <button class="btn-m-cancel btn-m-danger" onclick="exitWithoutSave()">Exit Without Saving</button>
+      <button class="btn-m-confirm" onclick="saveAndExit()">Save &amp; Exit</button>
+    </div>
+  </div>
+</div>
+
+<!-- Save overlay -->
+<div class="save-overlay" id="save-overlay">
+  <div class="save-title">Saving responses...</div>
+  <div class="save-track"><div class="save-bar" id="save-bar"></div></div>
+  <div class="save-label" id="save-label">0%</div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script data-cfasync="false" src="/cdn-cgi/scripts/5c5dd728/cloudflare-static/email-decode.min.js"></script><script data-cfasync="false" src="/cdn-cgi/scripts/5c5dd728/cloudflare-static/email-decode.min.js"></script><script>
+// ── PASSWORD (hashed) ──────────────────────────────────────
+// SHA-256 of 'CERArgus2026!$%'
+const PASSWORD_HASH = '1a2b263203e40872f03cff92a645d0fd7ebf1525255cec9a5891a8d17f13643a';
+
+// ── REDCAP CONFIG ───────────────────────────────────────────
+const REDCAP_API_URL = 'https://redcapdemo.vumc.org/api/';
+const REDCAP_TOKEN   = '463B9E88AA2BA3105B078F21795ED1DB';
+const REDCAP_EVENTS  = { A: 'stage_1a_arm_1', B: 'stage_1b_arm_1', C: 'stage_1c_arm_1' };
+
+async function hashPassword(pw){
+  const enc = new TextEncoder();
+  const buf = await crypto.subtle.digest('SHA-256', enc.encode(pw));
+  return Array.from(new Uint8Array(buf)).map(b=>b.toString(16).padStart(2,'0')).join('');
+}
+
+// ── SESSION DEFINITIONS ────────────────────────────────────
+// Session A: CASE_A_001–040, Session B: CASE_B_001–040, Session C: CASE_C_001–480
+// Update imageUrl/aiImageUrl to your Cloudinary paths when ready
+function buildCases(prefix, count, imgFolder, aiFolder){
+  var arr = [];
+  for(var i=1;i<=count;i++){
+    var num = String(i).padStart(3,'0');
+    var id = prefix+'_'+num;
+    var filename = 'CASE_'+num;
+    arr.push({
+      id: id,
+      imageUrl: 'https://res.cloudinary.com/dfrfhqpcv/image/upload/'+imgFolder+'/'+filename+'.jpg',
+      aiImageUrl: 'https://res.cloudinary.com/dfrfhqpcv/image/upload/'+aiFolder+'/'+filename+'.jpg',
+      label: ''
+    });
+  }
+  return arr;
+}
+
+const SESSIONS = {
+  A: buildCases('CASE_A', 40,  'images',    'images_ai'),
+  B: buildCases('CASE_B', 40,  'images',    'images_ai'),
+  C: buildCases('CASE_C', 480, 'images',    'images_ai')
+};
+
+// ── STATE ──────────────────────────────────────────────────
+let currentSession = 'A';
+let CASES = SESSIONS['A'];
+let currentIndex = 0;
+let readerId = '';
+let responses = { A:{}, B:{}, C:{} };
+let zoomLevel = 1;
+let pendingGrade = null;
+let aiMode = false;
+let eventLog = [];
+let toggleLog = [];
+
+// Pan state
+let isPanning = false, panStartX = 0, panStartY = 0, panOffsetX = 0, panOffsetY = 0;
+
+function ts(){ return new Date().toISOString(); }
+function logEvent(type, detail){
+  eventLog.push({ time:ts(), type:type, session:currentSession, case: CASES[currentIndex]?CASES[currentIndex].id:'', detail:detail });
+}
+
+// Total case count for display
+document.getElementById('case-count-display').textContent = 40+40+480;
+buildTicks();
+document.getElementById('reader-id').addEventListener('keydown', function(e){ if(e.key==='Enter') document.getElementById('study-password').focus(); });
+document.getElementById('study-password').addEventListener('keydown', function(e){ if(e.key==='Enter') startStudy(); });
+
+function buildTicks(){
+  var c=document.getElementById('slider-ticks');
+  for(var i=0;i<=20;i++){
+    var t=document.createElement('span');
+    t.style.left=(i*5)+'%';
+    if(i%5===0) t.classList.add('major');
+    c.appendChild(t);
+  }
+}
+
+// ── LOGIN ──────────────────────────────────────────────────
+async function startStudy(){
+  var v = document.getElementById('reader-id').value.trim();
+  var p = document.getElementById('study-password').value;
+  if(!v || !p){ document.getElementById('login-error').style.display='block'; return; }
+
+  var hashed = await hashPassword(p);
+  if(hashed !== PASSWORD_HASH){
+    document.getElementById('login-error').textContent = 'Incorrect password. Please try again.';
+    document.getElementById('login-error').style.display='block';
+    return;
+  }
+
+  readerId = v.toUpperCase();
+  document.getElementById('header-reader-id').textContent = readerId;
+  logEvent('STUDY_START','Reader: '+readerId);
+  showScreen('study-screen');
+  switchSession('A');
+}
+
+// ── SESSIONS ───────────────────────────────────────────────
+function switchSession(sess){
+  currentSession = sess;
+  CASES = SESSIONS[sess];
+  document.querySelectorAll('.session-tab').forEach(function(t){ t.classList.remove('active'); });
+  document.getElementById('tab-'+sess.toLowerCase()).classList.add('active');
+  logEvent('SESSION_SWITCH', sess);
+  currentIndex = 0;
+  aiMode = false;
+  loadCase(0);
+  updateTabProgress();
+}
+
+function updateTabProgress(){
+  ['A','B','C'].forEach(function(s){
+    var total = SESSIONS[s].length;
+    var done = Object.keys(responses[s]).length;
+    document.getElementById('tab-prog-'+s.toLowerCase()).textContent = done+'/'+total;
+  });
+}
+
+// ── CASE LOADING ───────────────────────────────────────────
+function loadCase(idx){
+  currentIndex = idx;
+  var c = CASES[idx];
+  document.getElementById('overlay-case-id').textContent = c.id;
+
+  var img = document.getElementById('case-image');
+  var ph  = document.getElementById('image-placeholder');
+
+  // Reset pan
+  panOffsetX = 0; panOffsetY = 0;
+  img.style.transform = 'scale('+zoomLevel+') translate(0px,0px)';
+  zoomLevel = 1;
+  img.style.transform = 'scale(1) translate(0px,0px)';
+
+  if(c.imageUrl){
+    img.src = aiMode ? c.aiImageUrl : c.imageUrl;
+    img.style.display='block'; ph.style.display='none';
+  } else {
+    img.style.display='none'; ph.style.display='flex';
+  }
+
+  // Update AI toggle button to reflect persisted state
+  updateAIToggleUI();
+  toggleLog = [];
+
+  var saved = responses[currentSession][c.id];
+  var sv = saved ? saved.score : 50;
+  document.getElementById('risk-slider').value = sv;
+  document.getElementById('manual-score').value = sv;
+  document.getElementById('notes-input').value = saved ? (saved.notes||'') : '';
+  updateSlider(sv);
+  setRespStatus(!!saved);
+  restoreLikerts(saved);
+
+  var btn = document.getElementById('btn-submit');
+  if(saved){ btn.classList.add('graded'); btn.textContent='Update Response'; }
+  else { btn.classList.remove('graded'); btn.textContent='Record Response'; }
+
+  updateProgress();
+  document.getElementById('btn-prev').disabled = (idx===0);
+  document.getElementById('btn-next').disabled = (idx>=CASES.length-1 || !responses[currentSession][c.id]);
+
+  logEvent('CASE_LOAD', c.id);
+  updateDragHint();
+}
+
+function updateDragHint(){
+  document.getElementById('drag-hint').style.display = zoomLevel > 1 ? 'inline' : 'none';
+}
+
+// ── AI TOGGLE ──────────────────────────────────────────────
+function toggleAI(){
+  aiMode = !aiMode;
+  var c = CASES[currentIndex];
+  var img = document.getElementById('case-image');
+  img.src = aiMode ? c.aiImageUrl : c.imageUrl;
+  updateAIToggleUI();
+  var entry = ts()+' ('+(aiMode?'Standard→AI':'AI→Standard')+')';
+  toggleLog.push(entry);
+  logEvent('AI_TOGGLE', aiMode ? 'ON' : 'OFF');
+}
+
+function updateAIToggleUI(){
+  var btn = document.getElementById('ai-toggle-btn');
+  var banner = document.getElementById('ai-banner');
+  if(aiMode){
+    btn.classList.add('ai-active');
+    document.getElementById('ai-toggle-text').textContent = '🤖 AI View — ON';
+    document.getElementById('toggle-dot').style.background = 'var(--ai-color)';
+    banner.classList.add('visible');
+  } else {
+    btn.classList.remove('ai-active');
+    document.getElementById('ai-toggle-text').textContent = 'Standard View';
+    document.getElementById('toggle-dot').style.background = '';
+    banner.classList.remove('visible');
+  }
+}
+
+// ── PAN / DRAG ─────────────────────────────────────────────
+(function(){
+  var img = document.getElementById('case-image');
+  img.addEventListener('mousedown', function(e){
+    if(zoomLevel <= 1) return;
+    isPanning=true; panStartX=e.clientX-panOffsetX; panStartY=e.clientY-panOffsetY;
+    img.classList.add('panning'); e.preventDefault();
+  });
+  document.addEventListener('mousemove', function(e){
+    if(!isPanning) return;
+    panOffsetX=e.clientX-panStartX; panOffsetY=e.clientY-panStartY;
+    img.style.transform='scale('+zoomLevel+') translate('+panOffsetX/zoomLevel+'px,'+panOffsetY/zoomLevel+'px)';
+  });
+  document.addEventListener('mouseup', function(){ isPanning=false; img.classList.remove('panning'); });
+})();
+
+// ── ZOOM ───────────────────────────────────────────────────
+function adjustZoom(d){
+  zoomLevel=Math.max(.5,Math.min(3,zoomLevel+d));
+  document.getElementById('case-image').style.transform='scale('+zoomLevel+') translate('+panOffsetX/zoomLevel+'px,'+panOffsetY/zoomLevel+'px)';
+  updateDragHint();
+}
+function resetZoom(){
+  zoomLevel=1; panOffsetX=0; panOffsetY=0;
+  document.getElementById('case-image').style.transform='scale(1) translate(0px,0px)';
+  updateDragHint();
+}
+
+// ── SLIDER & MANUAL INPUT ──────────────────────────────────
+function updateSlider(val){
+  val=Math.round(parseInt(val)/5)*5;
+  if(val<0)val=0; if(val>100)val=100;
+  document.getElementById('lh-display').textContent=val;
+  document.getElementById('risk-slider').value=val;
+  document.getElementById('manual-score').value=val;
+  document.getElementById('slider-fill').style.width=val+'%';
+  var color,label;
+  if(val<=45){color='#4af09a';label=val===0?'Definitely absent':val<=10?'Very unlikely':'Low likelihood';}
+  else if(val<=69){color='#f0a44a';label=val===50?'Uncertain':val<50?'Leaning absent':'Leaning present';}
+  else{color='#f06060';label=val>=90?'Definite defect':'High likelihood';}
+  document.getElementById('slider-fill').style.background=color;
+  document.getElementById('lh-display').style.color=color;
+  document.getElementById('lh-label').textContent=label;
+  document.getElementById('lh-label').style.color=color;
+}
+
+function onManualInput(val){
+  var n=parseInt(val);
+  if(isNaN(n)) return;
+  n=Math.round(n/5)*5;
+  if(n<0)n=0; if(n>100)n=100;
+  updateSlider(n);
+}
+
+// ── LIKERTS ────────────────────────────────────────────────
+function restoreLikerts(saved){
+  document.querySelectorAll('input[name=acceptance]').forEach(function(r){r.checked=false;});
+  document.querySelectorAll('input[name=trust]').forEach(function(r){r.checked=false;});
+  document.getElementById('acceptance-val').textContent='—';
+  document.getElementById('trust-val').textContent='—';
+  if(saved){
+    if(saved.acceptance){ var r=document.querySelector('input[name=acceptance][value="'+saved.acceptance+'"]'); if(r)r.checked=true; document.getElementById('acceptance-val').textContent=saved.acceptance+'/5'; }
+    if(saved.trust){ var r2=document.querySelector('input[name=trust][value="'+saved.trust+'"]'); if(r2)r2.checked=true; document.getElementById('trust-val').textContent=saved.trust+'/5'; }
+  }
+}
+
+function onLikertChange(scale,val){
+  if(scale==='acceptance') document.getElementById('acceptance-val').textContent=val+'/5';
+  else document.getElementById('trust-val').textContent=val+'/5';
+  logEvent('LIKERT_'+scale.toUpperCase(), val);
+}
+
+// ── NAVIGATION ─────────────────────────────────────────────
+function navigate(dir){
+  var ni=currentIndex+dir;
+  if(ni>=0&&ni<CASES.length){ logEvent('NAVIGATE',dir>0?'NEXT':'PREV'); loadCase(ni); }
+}
+
+function setRespStatus(rec){
+  var el=document.getElementById('resp-status');
+  if(rec){el.className='resp-status recorded';el.textContent='Response recorded';}
+  else{el.className='resp-status not-rec';el.textContent='No response recorded';}
+}
+
+function updateProgress(){
+  var total=CASES.length, graded=Object.keys(responses[currentSession]).length, pct=Math.round((graded/total)*100);
+  document.getElementById('progress-label').textContent='Case '+(currentIndex+1)+' of '+total+' | '+graded+'/'+total+' recorded';
+  document.getElementById('progress-pct').textContent=pct+'%';
+  document.getElementById('progress-fill').style.width=pct+'%';
+  updateTabProgress();
+}
+
+// ── SUBMIT ─────────────────────────────────────────────────
+function attemptSubmit(){
+  var c=CASES[currentIndex];
+  var score=Math.round(parseInt(document.getElementById('risk-slider').value)/5)*5;
+  var notes=document.getElementById('notes-input').value.trim();
+  var acceptance=document.querySelector('input[name=acceptance]:checked');
+  var trust=document.querySelector('input[name=trust]:checked');
+  if(responses[currentSession][c.id]){
+    pendingGrade={caseId:c.id,score:score,notes:notes,acceptance:acceptance?parseInt(acceptance.value):null,trust:trust?parseInt(trust.value):null};
+    openModal('modal-overwrite');
+  } else {
+    commitGrade(c.id,score,notes,acceptance?parseInt(acceptance.value):null,trust?parseInt(trust.value):null);
+  }
+}
+
+function confirmOverwrite(){
+  closeModal('modal-overwrite');
+  if(pendingGrade){ commitGrade(pendingGrade.caseId,pendingGrade.score,pendingGrade.notes,pendingGrade.acceptance,pendingGrade.trust); pendingGrade=null; }
+}
+
+function commitGrade(caseId,score,notes,acceptance,trust){
+  var cat = score<=45?'Low':score<=69?'Moderate':'High';
+  var rec = {
+    score:score, notes:notes, acceptance:acceptance, trust:trust,
+    aiModeAtSubmit:aiMode, toggleCount:toggleLog.length,
+    toggleHistory:toggleLog.slice(), timestamp:ts()
+  };
+  responses[currentSession][caseId] = rec;
+  logEvent('RESPONSE_RECORDED','score:'+score+' acceptance:'+acceptance+' trust:'+trust+' aiMode:'+aiMode+' session:'+currentSession);
+
+  // Submit to REDCap
+  submitToREDCap(caseId, score, cat, notes, acceptance, trust, rec);
+
+  setRespStatus(true);
+  var btn=document.getElementById('btn-submit');
+  btn.classList.add('graded'); btn.textContent='Update Response';
+  if(currentIndex<CASES.length-1) document.getElementById('btn-next').disabled=false;
+  updateProgress();
+  var done=Object.keys(responses[currentSession]).length;
+  if(done===CASES.length){ showToast('Session '+currentSession+' complete!'); setTimeout(showCompleteScreen,1200); }
+  else if(currentIndex<CASES.length-1){ showToast('Response recorded - advancing...'); setTimeout(function(){navigate(1);},600); }
+  else{ showToast('Response recorded'); }
+}
+
+async function submitToREDCap(caseId, score, category, notes, acceptance, trust, rec){
+  var record = [{
+    record_id:              '',
+    redcap_event_name:      REDCAP_EVENTS[currentSession],
+    redcap_repeat_instrument: 'argus_ss1',
+    redcap_repeat_instance:   'new',
+    reader_id:              readerId,
+    session:            currentSession,
+    case_id:            caseId,
+    likelihood_score:   String(score),
+    risk_category:      category,
+    acceptance_ai:      acceptance !== null ? String(acceptance) : '',
+    trust_ai:           trust !== null ? String(trust) : '',
+    ai_mode_at_submit:  rec.aiModeAtSubmit ? 'AI' : 'Standard',
+    toggle_count:       String(rec.toggleCount),
+    toggle_history:     (rec.toggleHistory||[]).join(' | '),
+    feedback:           notes || '',
+    timestamp:          rec.timestamp
+  }];
+
+  var body = new URLSearchParams({
+    token:        REDCAP_TOKEN,
+    content:      'record',
+    format:       'json',
+    type:         'flat',
+    overwriteBehavior: 'normal',
+    data:         JSON.stringify(record),
+    returnContent:'count',
+    returnFormat: 'json'
+  });
+
+  try {
+    var resp = await fetch(REDCAP_API_URL, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+      body: body.toString()
+    });
+    var result = await resp.json();
+    if(result.count && result.count > 0){
+      logEvent('REDCAP_SUBMIT_OK', caseId);
+      showToast('Saved to REDCap ✓');
+    } else {
+      logEvent('REDCAP_SUBMIT_WARN', JSON.stringify(result));
+      showToast('REDCap: check submission');
+      console.warn('REDCap response:', result);
+    }
+  } catch(err){
+    logEvent('REDCAP_SUBMIT_ERROR', err.message);
+    console.error('REDCap submission failed:', err);
+    showToast('REDCap offline — response saved locally');
+  }
+}
+
+// ── COMPLETE ───────────────────────────────────────────────
+function showCompleteScreen(){
+  var scores=Object.values(responses[currentSession]).map(function(r){return r.score;});
+  var mean=scores.length?Math.round(scores.reduce(function(a,b){return a+b;},0)/scores.length):0;
+  document.getElementById('stat-cases').textContent=scores.length;
+  document.getElementById('stat-mean').textContent=mean+'%';
+  document.getElementById('stat-high').textContent=scores.filter(function(s){return s>66;}).length;
+  showScreen('complete-screen');
+}
+
+// ── CSV EXPORT ─────────────────────────────────────────────
+function exportCSV(silent){
+  var rows=[
+    ['Study','ARGUS Reader Study'],['Reader ID',readerId],['Export Date',ts()],
+    ['Sessions','A (40 cases), B (40 cases), C (480 cases)'],
+    []
+  ];
+
+  ['A','B','C'].forEach(function(sess){
+    rows.push(['--- SESSION '+sess+' ---']);
+    rows.push(['Case ID','Likelihood Score (%)','Risk Category','Acceptance of AI (1-5)','Trust of AI (1-5)','AI Mode at Submit','Toggle Count','Toggle History','Feedback','Timestamp']);
+    SESSIONS[sess].forEach(function(c){
+      var r=responses[sess][c.id];
+      if(r){
+        var cat=r.score<=45?'Low':r.score<=69?'Moderate':'High';
+        rows.push([c.id,r.score,cat,r.acceptance||'',r.trust||'',r.aiModeAtSubmit?'AI':'Standard',r.toggleCount||0,(r.toggleHistory||[]).join(' | '),r.notes||'',r.timestamp]);
+      } else {
+        rows.push([c.id,'NOT ASSESSED','','','','','','','','']);
+      }
+    });
+    rows.push([]);
+  });
+
+  rows.push(['--- INTERACTION LOG ---']);
+  rows.push(['Timestamp','Event Type','Session','Case','Detail']);
+  eventLog.forEach(function(e){ rows.push([e.time,e.type,e.session,e.case,e.detail]); });
+
+  var csv=rows.map(function(r){return r.map(function(v){return '"'+String(v).replace(/"/g,'""')+'"';}).join(',');}).join('\n');
+  var blob=new Blob([csv],{type:'text/csv;charset=utf-8;'});
+  var url=URL.createObjectURL(blob);
+  var a=document.createElement('a');
+  a.href=url; a.download='argus_study_'+readerId+'_'+new Date().toISOString().slice(0,10)+'.csv';
+  a.click(); URL.revokeObjectURL(url);
+  if(!silent) showToast('CSV downloaded');
+}
+
+// ── SAVE / EXIT ────────────────────────────────────────────
+function triggerSave(cb){
+  var overlay=document.getElementById('save-overlay'),bar=document.getElementById('save-bar'),lbl=document.getElementById('save-label');
+  overlay.classList.add('active'); bar.style.width='0%'; lbl.textContent='0%';
+  var pct=0;
+  var iv=setInterval(function(){
+    pct+=Math.random()*18+8;
+    if(pct>=100){ pct=100; clearInterval(iv); bar.style.width='100%'; lbl.textContent='100%';
+      setTimeout(function(){ overlay.classList.remove('active'); exportCSV(true); showToast('Responses saved'); if(cb)cb(); },400);
+    } else { bar.style.width=pct+'%'; lbl.textContent=Math.round(pct)+'%'; }
+  },80);
+}
+
+function triggerExit(){ openModal('modal-exit'); }
+function exitWithoutSave(){ closeModal('modal-exit'); showScreen('login-screen'); responses={A:{},B:{},C:{}}; readerId=''; showToast('Session ended'); }
+function saveAndExit(){ closeModal('modal-exit'); triggerSave(function(){ showScreen('login-screen'); responses={A:{},B:{},C:{}}; readerId=''; }); }
+
+// ── UTILITIES ──────────────────────────────────────────────
+function openModal(id){ document.getElementById(id).classList.add('active'); }
+function closeModal(id){ document.getElementById(id).classList.remove('active'); }
+function showScreen(id){ document.querySelectorAll('.screen').forEach(function(s){s.classList.remove('active');}); document.getElementById(id).classList.add('active'); }
+var toastTimer;
+function showToast(msg){ var t=document.getElementById('toast'); t.textContent=msg; t.classList.add('show'); clearTimeout(toastTimer); toastTimer=setTimeout(function(){t.classList.remove('show');},2500); }
+</script>
+</body>
+</html>
