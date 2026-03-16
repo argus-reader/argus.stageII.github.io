@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-<meta charset="UTF-8">
+<meta charset="UTF-8"><!-- ARGUS v2.1 -->
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>ARGUS Reader Study</title>
 <link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@300;400;500&family=Fraunces:ital,opsz,wght@0,9..144,300;0,9..144,600;1,9..144,300&display=swap" rel="stylesheet">
@@ -792,8 +792,6 @@ async function submitToREDCap(caseId, score, category, notes, acceptance, trust,
   var record = [{
     record_id:              '',
     redcap_event_name:      REDCAP_EVENTS[currentSession],
-    redcap_repeat_instrument: 'argus_ss1',
-    redcap_repeat_instance: 'new',
     reader_id:              readerId,
     session:            currentSession,
     case_id:            caseId,
