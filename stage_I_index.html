@@ -1,0 +1,748 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"><!-- ARGUS_Stage_I v1.0 -->
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ARGUS Stage I</title>
+<link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@300;400;500&family=Fraunces:ital,opsz,wght@0,9..144,300;0,9..144,600;1,9..144,300&display=swap" rel="stylesheet">
+<style>
+:root{
+  --bg:#0a0c0f;--surface:#111318;--surface2:#181c22;
+  --border:#252a33;--border-bright:#3a4150;
+  --text:#ffffff;--text-muted:#a0aab8;--text-dim:#6b7585;
+  --accent:#4af0c4;--accent-dim:rgba(74,240,196,0.12);--accent-mid:rgba(74,240,196,0.4);
+  --warn:#f0a44a;--danger:#f06060;
+  --mono:'DM Mono',monospace;--serif:'Fraunces',Georgia,serif;
+}
+*{margin:0;padding:0;box-sizing:border-box;}
+html,body{height:100%;width:100%;overflow:hidden;}
+body{background:var(--bg);color:var(--text);font-family:var(--mono);font-size:13px;}
+body::before{content:'';position:fixed;inset:0;background-image:linear-gradient(rgba(74,240,196,0.03) 1px,transparent 1px),linear-gradient(90deg,rgba(74,240,196,0.03) 1px,transparent 1px);background-size:40px 40px;pointer-events:none;z-index:0;}
+.screen{display:none;position:relative;z-index:1;}
+.screen.active{display:flex;}
+
+/* ── LOGIN ── */
+#login-screen{height:100vh;width:100vw;flex-direction:column;align-items:center;justify-content:center;padding:40px 20px;overflow-y:auto;}
+.login-box{width:100%;max-width:460px;border:1px solid var(--border-bright);background:var(--surface);padding:48px 40px;position:relative;animation:fadeUp .5s ease both;}
+.login-box::before{content:'';position:absolute;top:-1px;left:-1px;right:-1px;height:2px;background:linear-gradient(90deg,transparent,var(--accent),transparent);}
+.study-badge{font-size:10px;letter-spacing:.2em;text-transform:uppercase;color:var(--accent);margin-bottom:24px;display:flex;align-items:center;justify-content:center;gap:8px;}
+.study-badge::before{content:'';width:20px;height:1px;background:var(--accent);}
+.study-badge::after{content:'';width:20px;height:1px;background:var(--accent);}
+.login-title{font-family:var(--serif);font-size:26px;font-weight:300;line-height:1.25;margin-bottom:4px;color:var(--accent);text-align:center;}
+.login-title em{font-style:italic;color:var(--accent);}
+.login-task{font-size:17px;color:var(--text);margin-bottom:24px;font-weight:400;text-align:center;}
+.login-subtitle{color:var(--text-muted);font-size:11px;line-height:1.6;margin-bottom:24px;text-align:justify;}
+.field-label{font-size:10px;letter-spacing:.15em;text-transform:uppercase;color:var(--text-muted);margin-bottom:8px;display:block;}
+.field-input{width:100%;background:var(--bg);border:1px solid var(--border);color:var(--text);font-family:var(--mono);font-size:14px;padding:12px 16px;outline:none;transition:border-color .2s;margin-bottom:16px;}
+.field-input:focus{border-color:var(--accent);}
+.btn-primary{width:100%;background:var(--accent);color:#000;border:none;font-family:var(--mono);font-size:12px;font-weight:500;letter-spacing:.12em;text-transform:uppercase;padding:14px 24px;cursor:pointer;transition:all .2s;}
+.btn-primary:hover{background:#fff;transform:translateY(-1px);}
+.login-error{color:var(--danger);font-size:11px;margin-top:10px;display:none;}
+.login-meta{margin-top:24px;padding-top:20px;border-top:1px solid var(--border);color:var(--text-muted);font-size:11px;line-height:1.7;text-align:justify;}
+.login-meta a{color:var(--accent);text-decoration:none;}
+.contact-line{display:flex;align-items:center;justify-content:center;gap:8px;margin-top:8px;color:var(--accent);font-size:10px;letter-spacing:.2em;text-transform:uppercase;}
+.contact-line span.line{width:20px;height:1px;background:var(--accent);display:inline-block;}
+
+/* ── SESSION TABS ── */
+.session-tabs{display:flex;gap:0;border-bottom:1px solid var(--border);flex-shrink:0;}
+.session-tab{flex:1;padding:10px 6px;font-family:var(--mono);font-size:10px;letter-spacing:.1em;text-transform:uppercase;background:transparent;border:none;border-right:1px solid var(--border);color:var(--text-muted);cursor:pointer;transition:all .2s;position:relative;}
+.session-tab:last-child{border-right:none;}
+.session-tab:hover{color:var(--text);background:var(--surface2);}
+.session-tab.active{color:var(--accent);background:var(--surface2);}
+.session-tab.active::after{content:'';position:absolute;bottom:-1px;left:0;right:0;height:2px;background:var(--accent);}
+.session-tab .tab-progress{font-size:9px;color:var(--text-dim);display:block;margin-top:2px;}
+.session-tab.active .tab-progress{color:var(--accent-mid);}
+.reader-tab{background:var(--surface2);border-left:1px solid var(--border);padding:10px 14px;font-size:10px;color:var(--text-muted);display:flex;align-items:center;gap:6px;white-space:nowrap;flex-shrink:0;}
+.reader-tab strong{color:var(--accent);}
+
+/* ── STUDY SCREEN ── */
+#study-screen{height:100vh;width:100vw;flex-direction:column;overflow:hidden;}
+.study-header{display:flex;align-items:center;justify-content:space-between;padding:10px 18px;border-bottom:1px solid var(--border);background:var(--surface);flex-shrink:0;gap:12px;flex-wrap:wrap;}
+.header-left{display:flex;align-items:center;gap:12px;flex-shrink:0;}
+.header-logo{font-family:var(--serif);font-size:14px;font-weight:300;white-space:nowrap;color:var(--text);}
+.header-logo span{color:var(--accent);font-style:italic;}
+.progress-section{flex:1;min-width:130px;max-width:240px;}
+.progress-labels{display:flex;justify-content:space-between;font-size:10px;color:var(--text-muted);margin-bottom:5px;}
+.progress-track{height:3px;background:var(--border);overflow:hidden;}
+.progress-fill{height:100%;background:var(--accent);transition:width .4s ease;}
+.header-right{display:flex;align-items:center;gap:6px;flex-shrink:0;}
+.btn-hdr{background:transparent;border:1px solid var(--border-bright);color:var(--text-muted);font-family:var(--mono);font-size:10px;letter-spacing:.1em;text-transform:uppercase;padding:6px 10px;cursor:pointer;transition:all .2s;white-space:nowrap;}
+.btn-hdr:hover{border-color:var(--accent);color:var(--accent);}
+.btn-hdr-exit:hover{border-color:var(--danger)!important;color:var(--danger)!important;}
+
+/* ── IMAGE PANEL ── */
+.study-body{flex:1;display:grid;grid-template-columns:1fr 370px;min-height:0;overflow:hidden;}
+.image-panel{background:#060809;display:flex;align-items:center;justify-content:center;position:relative;overflow:hidden;border-right:1px solid var(--border);}
+.image-panel::after{content:'';position:absolute;inset:0;background:radial-gradient(ellipse at center,transparent 60%,rgba(0,0,0,.6) 100%);pointer-events:none;z-index:1;}
+.case-image{max-width:90%;max-height:90%;object-fit:contain;display:block;border:1px solid var(--border);transform-origin:center;cursor:grab;user-select:none;}
+.case-image:active{cursor:grabbing;}
+.image-placeholder{display:flex;flex-direction:column;align-items:center;gap:14px;color:var(--text-dim);}
+.image-placeholder svg{opacity:.3;}
+.image-placeholder p{font-size:11px;letter-spacing:.1em;text-transform:uppercase;color:var(--text-muted);}
+.case-overlay{position:absolute;top:14px;left:14px;z-index:5;background:rgba(10,12,15,.88);border:1px solid var(--border);padding:7px 13px;backdrop-filter:blur(4px);}
+.case-overlay-id{font-size:10px;letter-spacing:.15em;text-transform:uppercase;color:var(--text-muted);}
+.case-overlay-num{font-size:17px;font-family:var(--serif);font-weight:300;line-height:1.2;color:var(--text);}
+.zoom-controls{position:absolute;bottom:14px;left:14px;z-index:5;display:flex;gap:4px;align-items:center;}
+.zoom-btn{width:30px;height:30px;background:rgba(10,12,15,.88);border:1px solid var(--border);color:var(--text-muted);font-size:15px;cursor:pointer;display:flex;align-items:center;justify-content:center;transition:all .15s;backdrop-filter:blur(4px);}
+.zoom-btn:hover{border-color:var(--accent);color:var(--accent);}
+.drag-hint{font-size:9px;color:var(--text-dim);letter-spacing:.08em;text-transform:uppercase;margin-left:4px;}
+
+/* ── GRADING PANEL ── */
+.grading-panel{background:var(--surface);display:flex;flex-direction:column;overflow-y:auto;overflow-x:hidden;}
+.g-section{padding:16px 20px;border-bottom:1px solid var(--border);flex-shrink:0;}
+.sec-label{font-size:9px;letter-spacing:.2em;text-transform:uppercase;color:var(--text-dim);margin-bottom:8px;}
+.grading-title{font-family:var(--serif);font-size:17px;font-weight:300;line-height:1.3;margin-bottom:4px;color:var(--text);}
+.grading-instr{font-size:11px;color:var(--text-muted);line-height:1.6;}
+.resp-status{display:inline-flex;align-items:center;gap:5px;font-size:10px;letter-spacing:.08em;text-transform:uppercase;padding:5px 10px;border:1px solid;margin-top:10px;}
+.resp-status.recorded{color:var(--accent);border-color:var(--accent-mid);background:var(--accent-dim);}
+.resp-status.not-rec{color:var(--text-dim);border-color:var(--border);}
+
+/* LIKELIHOOD */
+.likelihood-section{padding:16px 20px;border-bottom:1px solid var(--border);flex-shrink:0;}
+.lh-value-row{display:flex;align-items:baseline;gap:4px;margin-bottom:12px;}
+.lh-number{font-family:var(--serif);font-size:48px;font-weight:300;line-height:1;transition:color .3s;min-width:68px;color:var(--text);}
+.lh-pct{font-size:16px;color:var(--text-muted);}
+.lh-label{font-size:11px;color:var(--text-muted);margin-left:auto;text-align:right;transition:color .3s;}
+.slider-wrap{position:relative;margin-bottom:4px;}
+.slider-track{height:6px;background:var(--surface2);border:1px solid var(--border);position:relative;}
+.slider-fill{height:100%;position:absolute;left:0;top:0;transition:width .04s,background .3s;pointer-events:none;}
+input[type=range].risk-slider{-webkit-appearance:none;appearance:none;position:absolute;top:50%;left:0;transform:translateY(-50%);width:100%;height:22px;background:transparent;margin:0;cursor:grab;outline:none;}
+input[type=range].risk-slider::-webkit-slider-thumb{-webkit-appearance:none;width:18px;height:18px;background:var(--text);border:2px solid var(--bg);border-radius:0;box-shadow:0 0 0 1px var(--border-bright),0 2px 8px rgba(0,0,0,.5);transition:background .2s;cursor:grab;}
+input[type=range].risk-slider::-webkit-slider-thumb:hover{background:var(--accent);box-shadow:0 0 0 1px var(--accent),0 0 12px var(--accent-mid);}
+input[type=range].risk-slider::-moz-range-thumb{width:18px;height:18px;background:var(--text);border:2px solid var(--bg);border-radius:0;}
+.slider-ticks{position:relative;height:8px;margin-bottom:4px;}
+.slider-ticks span{position:absolute;width:1px;height:100%;background:var(--border);transform:translateX(-50%);}
+.slider-ticks span.major{background:var(--border-bright);}
+.slider-scale{display:flex;justify-content:space-between;margin-top:4px;margin-bottom:10px;}
+.slider-scale span{font-size:9px;color:var(--text-muted);}
+.manual-input-row{display:flex;align-items:center;gap:8px;margin-top:8px;}
+.manual-input-label{font-size:10px;color:var(--text-muted);letter-spacing:.05em;flex-shrink:0;}
+.manual-score-input{width:70px;background:var(--bg);border:1px solid var(--border);color:var(--text);font-family:var(--mono);font-size:13px;padding:6px 10px;outline:none;text-align:center;transition:border-color .2s;}
+.manual-score-input:focus{border-color:var(--accent);}
+.manual-hint{font-size:9px;color:var(--text-dim);}
+
+/* NAV */
+.nav-section{padding:12px 20px;display:flex;gap:6px;flex-shrink:0;margin-top:auto;}
+.btn-nav{flex:1;background:transparent;border:1px solid var(--border-bright);color:var(--text-muted);font-family:var(--mono);font-size:10px;letter-spacing:.12em;text-transform:uppercase;padding:10px 4px;cursor:pointer;transition:all .2s;}
+.btn-nav:hover:not(:disabled){border-color:var(--text-muted);color:var(--text);}
+.btn-nav:disabled{opacity:.25;cursor:not-allowed;}
+.btn-submit{flex:2;background:var(--accent);border:none;color:#000;font-family:var(--mono);font-size:11px;font-weight:500;letter-spacing:.12em;text-transform:uppercase;padding:10px 4px;cursor:pointer;transition:all .2s;}
+.btn-submit:hover{background:#fff;}
+.btn-submit.graded{background:var(--accent-dim);border:1px solid var(--accent-mid);color:var(--accent);}
+
+/* COMPLETE */
+#complete-screen{height:100vh;width:100vw;flex-direction:column;align-items:center;justify-content:center;padding:40px 20px;overflow-y:auto;}
+.complete-box{max-width:500px;width:100%;text-align:center;animation:fadeUp .5s ease both;}
+.complete-icon{width:54px;height:54px;border:1px solid var(--accent);border-radius:50%;display:flex;align-items:center;justify-content:center;margin:0 auto 22px;color:var(--accent);font-size:22px;animation:pulse-glow 2s ease-in-out infinite;}
+@keyframes pulse-glow{0%,100%{box-shadow:0 0 0 0 var(--accent-dim);}50%{box-shadow:0 0 0 12px transparent;}}
+.complete-title{font-family:var(--serif);font-size:30px;font-weight:300;margin-bottom:10px;color:var(--text);}
+.complete-title em{font-style:italic;color:var(--accent);}
+.complete-sub{color:var(--text-muted);font-size:12px;line-height:1.7;margin-bottom:24px;}
+.complete-stats{display:grid;grid-template-columns:1fr 1fr;gap:1px;background:var(--border);border:1px solid var(--border);margin-bottom:22px;}
+.stat-cell{background:var(--surface);padding:16px;}
+.stat-value{font-family:var(--serif);font-size:26px;font-weight:300;color:var(--accent);}
+.stat-label{font-size:9px;letter-spacing:.15em;text-transform:uppercase;color:var(--text-dim);margin-top:4px;}
+.btn-download{display:inline-flex;align-items:center;gap:10px;background:var(--accent);border:none;color:#000;font-family:var(--mono);font-size:11px;font-weight:500;letter-spacing:.15em;text-transform:uppercase;padding:13px 26px;cursor:pointer;transition:all .2s;margin-bottom:12px;}
+.btn-download:hover{background:#fff;transform:translateY(-2px);}
+
+/* MODALS */
+.modal-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.78);z-index:200;align-items:center;justify-content:center;backdrop-filter:blur(3px);}
+.modal-overlay.active{display:flex;}
+.modal-box{background:var(--surface);border:1px solid var(--border-bright);max-width:420px;width:90%;padding:34px 30px;position:relative;animation:fadeUp .2s ease both;}
+.modal-box::before{content:'';position:absolute;top:-1px;left:-1px;right:-1px;height:2px;background:linear-gradient(90deg,transparent,var(--warn),transparent);}
+.modal-box.danger-modal::before{background:linear-gradient(90deg,transparent,var(--danger),transparent);}
+.modal-icon{font-size:22px;margin-bottom:14px;}
+.modal-title{font-family:var(--serif);font-size:19px;font-weight:300;margin-bottom:9px;color:var(--text);}
+.modal-body{font-size:12px;color:var(--text-muted);line-height:1.7;margin-bottom:26px;}
+.modal-actions{display:flex;gap:9px;}
+.btn-m-cancel{flex:1;background:transparent;border:1px solid var(--border-bright);color:var(--text-muted);font-family:var(--mono);font-size:10px;letter-spacing:.12em;text-transform:uppercase;padding:11px;cursor:pointer;transition:all .2s;}
+.btn-m-cancel:hover{border-color:var(--text-muted);color:var(--text);}
+.btn-m-confirm{flex:1;background:var(--accent);border:none;color:#000;font-family:var(--mono);font-size:10px;font-weight:500;letter-spacing:.12em;text-transform:uppercase;padding:11px;cursor:pointer;transition:all .2s;}
+.btn-m-confirm:hover{background:#fff;}
+.btn-m-danger{background:var(--danger);color:#fff;}
+.btn-m-danger:hover{background:#ff8888!important;}
+
+/* SAVE OVERLAY */
+.save-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.88);z-index:300;align-items:center;justify-content:center;flex-direction:column;gap:18px;backdrop-filter:blur(4px);}
+.save-overlay.active{display:flex;}
+.save-title{font-family:var(--serif);font-size:17px;font-weight:300;letter-spacing:.04em;color:var(--text);}
+.save-track{width:260px;height:4px;background:var(--border);border:1px solid var(--border-bright);overflow:hidden;}
+.save-bar{height:100%;background:var(--accent);width:0%;box-shadow:0 0 8px var(--accent-mid);transition:width .05s linear;}
+.save-label{font-size:10px;letter-spacing:.15em;text-transform:uppercase;color:var(--text-muted);}
+.toast{position:fixed;bottom:22px;left:50%;transform:translateX(-50%) translateY(80px);background:var(--surface2);border:1px solid var(--border-bright);color:var(--text);font-size:11px;padding:9px 18px;letter-spacing:.05em;transition:transform .3s ease;z-index:400;pointer-events:none;white-space:nowrap;}
+.toast.show{transform:translateX(-50%) translateY(0);}
+@keyframes fadeUp{from{opacity:0;transform:translateY(16px);}to{opacity:1;transform:translateY(0);}}
+::-webkit-scrollbar{width:4px;}::-webkit-scrollbar-track{background:transparent;}::-webkit-scrollbar-thumb{background:var(--border-bright);}
+@media(max-width:680px){.study-body{grid-template-columns:1fr;grid-template-rows:1fr auto;}.image-panel{min-height:38vh;}.grading-panel{max-height:62vh;}}
+
+/* ── SURVEY MODAL ── */
+#survey-modal{display:none;position:fixed;inset:0;background:rgba(0,0,0,.88);z-index:500;align-items:center;justify-content:center;flex-direction:column;gap:0;backdrop-filter:blur(4px);}
+#survey-modal.active{display:flex;}
+.survey-modal-box{width:90%;max-width:700px;height:80vh;background:var(--surface);border:1px solid var(--accent);position:relative;display:flex;flex-direction:column;}
+.survey-modal-box::before{content:'';position:absolute;top:-1px;left:-1px;right:-1px;height:2px;background:linear-gradient(90deg,transparent,var(--accent),transparent);}
+.survey-modal-header{display:flex;align-items:center;justify-content:space-between;padding:14px 20px;border-bottom:1px solid var(--border);flex-shrink:0;}
+.survey-modal-title{font-family:var(--serif);font-size:16px;font-weight:300;color:var(--text);}
+.survey-modal-title em{font-style:italic;color:var(--accent);}
+.survey-modal-subtitle{font-size:10px;color:var(--text-muted);margin-top:2px;letter-spacing:.05em;}
+
+.survey-modal-footer{padding:12px 20px;border-top:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;flex-shrink:0;gap:12px;}
+.survey-footer-note{font-size:10px;color:var(--text-dim);line-height:1.5;flex:1;}
+.btn-survey-done{background:var(--accent);color:#000;border:none;font-family:var(--mono);font-size:11px;font-weight:500;letter-spacing:.12em;text-transform:uppercase;padding:10px 20px;cursor:pointer;transition:all .2s;white-space:nowrap;flex-shrink:0;}
+.btn-survey-done:hover{background:#fff;}
+</style>
+</head>
+<body>
+
+<!-- ══ LOGIN ══ -->
+<div id="login-screen" class="screen active">
+  <div class="login-box">
+    <div class="study-badge">Reader Study &middot; Ophthalmology</div>
+    <h1 class="login-title"><em>ARGUS</em></h1>
+    <p class="login-task">AI-based Report for Glaucoma Detection: User-centered Study</p>
+    <p class="login-subtitle">This is a research project. We will first ask a few brief survey questions. Then, we will show you OCT reports and ask you to rate the likelihood of glaucomatous visual field defect (GVFD) from these reports. Each case presents one image for independent assessment. Please use your allocated Reader ID.<br><br>All submissions are collected anonymously for research purposes using unique reader identifiers. For questions, please see contact details below. Participation is voluntary and you can withdraw from the study at any point by contacting the investigator below.<br><br>All responses are saved automatically, but as a back-up, could you export your responses for each session as an Excel file, please, and provide to the investigator below at the end of your session.</p>
+    <label class="field-label" for="reader-id">Reader ID</label>
+    <input class="field-input" type="text" id="reader-id" placeholder="e.g. ARGUS001" autocomplete="off">
+    <label class="field-label" for="study-password">Study Password</label>
+    <input class="field-input" type="password" id="study-password" placeholder="Enter study password" autocomplete="off" style="margin-bottom:20px;">
+    <button class="btn-primary" onclick="startStudy()">Begin Study &rarr;</button>
+    <div class="login-error" id="login-error">Please enter a valid Reader ID and password to continue.</div>
+    <div class="login-meta">
+      Responses are stored in your browser session and submitted automatically. This study contains <strong id="case-count-display">0</strong> cases across 4 sessions.<br><br>
+      <div style="text-align:center;">For more information, contact below:</div>
+      <div class="contact-line"><span class="line"></span>📧 <a href="/cdn-cgi/l/email-protection#b7cec4d4d6d9c3dbded9d09ad5dec5d4dff7d4d2c5d699d8c5d099d6c2">Dr Y Scantling-Birch</a><span class="line"></span></div>
+    </div>
+  </div>
+</div>
+
+<!-- ══ STUDY ══ -->
+<div id="study-screen" class="screen">
+  <div class="study-header">
+    <div class="header-left">
+      <div class="header-logo">ARGUS <span>Stage I</span></div>
+    </div>
+    <div class="progress-section">
+      <div class="progress-labels">
+        <span id="progress-label">Case 1 of 0</span>
+        <span id="progress-pct">0%</span>
+      </div>
+      <div class="progress-track">
+        <div class="progress-fill" id="progress-fill" style="width:0%"></div>
+      </div>
+    </div>
+    <div class="header-right">
+      <button class="btn-hdr" onclick="triggerSave()">Save</button>
+      <button class="btn-hdr" onclick="exportCSV(false)">Export CSV</button>
+      <button class="btn-hdr btn-hdr-exit" onclick="triggerExit()">Exit</button>
+    </div>
+  </div>
+
+  <!-- SESSION TABS -->
+  <div style="display:flex;background:var(--surface);border-bottom:1px solid var(--border);flex-shrink:0;">
+    <div class="session-tabs" style="flex:1;">
+      <button class="session-tab active" id="tab-a" onclick="switchSession('A')">
+        Session A
+        <span class="tab-progress" id="tab-prog-a">0/40</span>
+      </button>
+      <button class="session-tab" id="tab-b" onclick="switchSession('B')">
+        Session B
+        <span class="tab-progress" id="tab-prog-b">0/40</span>
+      </button>
+      <button class="session-tab" id="tab-c" onclick="switchSession('C')">
+        Session C
+        <span class="tab-progress" id="tab-prog-c">0/480</span>
+      </button>
+      <button class="session-tab" id="tab-d" onclick="switchSession('D')">
+        Session D
+        <span class="tab-progress" id="tab-prog-d">0/480</span>
+      </button>
+    </div>
+    <div class="reader-tab">Reader: <strong id="header-reader-id">--</strong></div>
+  </div>
+
+  <div class="study-body">
+    <!-- IMAGE PANEL -->
+    <div class="image-panel" id="image-panel">
+      <div class="case-overlay">
+        <div class="case-overlay-id">Case ID</div>
+        <div class="case-overlay-num" id="overlay-case-id">--</div>
+      </div>
+      <div class="zoom-controls">
+        <button class="zoom-btn" onclick="adjustZoom(.2)" title="Zoom in">+</button>
+        <button class="zoom-btn" onclick="adjustZoom(-.2)" title="Zoom out">-</button>
+        <button class="zoom-btn" onclick="resetZoom()" style="font-size:11px" title="Reset zoom">Reset</button>
+        <span class="drag-hint" id="drag-hint" style="display:none;">&#9002; drag to pan</span>
+      </div>
+      <img class="case-image" id="case-image" src="" alt="Fundus" style="display:none">
+      <div class="image-placeholder" id="image-placeholder">
+        <svg width="64" height="64" viewBox="0 0 72 72" fill="none">
+          <circle cx="36" cy="36" r="35" stroke="currentColor" stroke-width="1"/>
+          <circle cx="36" cy="36" r="20" stroke="currentColor" stroke-width="1" stroke-dasharray="4 3"/>
+          <circle cx="36" cy="36" r="6" fill="currentColor" opacity=".4"/>
+          <line x1="36" y1="1" x2="36" y2="12" stroke="currentColor" stroke-width="1"/>
+          <line x1="36" y1="60" x2="36" y2="71" stroke="currentColor" stroke-width="1"/>
+          <line x1="1" y1="36" x2="12" y2="36" stroke="currentColor" stroke-width="1"/>
+          <line x1="60" y1="36" x2="71" y2="36" stroke="currentColor" stroke-width="1"/>
+        </svg>
+        <p>No image loaded</p>
+      </div>
+    </div>
+
+    <!-- GRADING PANEL -->
+    <div class="grading-panel">
+      <div class="g-section">
+        <div class="sec-label">Task</div>
+        <div class="grading-title">Likelihood of Glaucomatous Visual Field Defect</div>
+        <div class="grading-instr">Rate the likelihood of a glaucomatous visual field defect from 0% (definitely absent) to 100% (definitely present), in 5% increments.</div>
+        <div class="resp-status not-rec" id="resp-status">No response recorded</div>
+      </div>
+
+      <div class="likelihood-section">
+        <div class="sec-label">Likelihood Score</div>
+        <div class="lh-value-row">
+          <div class="lh-number" id="lh-display">50</div>
+          <div class="lh-pct">%</div>
+          <div class="lh-label" id="lh-label">Uncertain</div>
+        </div>
+        <div class="slider-wrap">
+          <div class="slider-track">
+            <div class="slider-fill" id="slider-fill" style="width:50%;background:#6b7585"></div>
+            <input type="range" class="risk-slider" id="risk-slider" min="0" max="100" step="5" value="50" oninput="updateSlider(this.value)">
+          </div>
+        </div>
+        <div class="slider-ticks" id="slider-ticks"></div>
+        <div class="slider-scale">
+          <span>0 — Definitely absent</span>
+          <span>50 — Uncertain</span>
+          <span>100 — Definite</span>
+        </div>
+        <div class="manual-input-row">
+          <span class="manual-input-label">Manual entry:</span>
+          <input type="number" class="manual-score-input" id="manual-score" min="0" max="100" step="5" value="50" oninput="onManualInput(this.value)">
+          <span class="manual-hint">0–100, multiples of 5</span>
+        </div>
+      </div>
+
+      <div class="nav-section">
+        <button class="btn-nav" id="btn-prev" onclick="navigate(-1)" disabled>&larr; Back</button>
+        <button class="btn-submit" id="btn-submit" onclick="attemptSubmit()">Record Response</button>
+        <button class="btn-nav" id="btn-next" onclick="navigate(1)" disabled>Next &rarr;</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ══ COMPLETE ══ -->
+<div id="complete-screen" class="screen">
+  <div class="complete-box">
+    <div class="complete-icon">&#10003;</div>
+    <h2 class="complete-title">Session <em>Complete</em></h2>
+    <p class="complete-sub">All cases in this session have been assessed. Thank you for your participation.</p>
+    <div class="complete-stats">
+      <div class="stat-cell"><div class="stat-value" id="stat-cases">0</div><div class="stat-label">Cases Graded</div></div>
+      <div class="stat-cell"><div class="stat-value" id="stat-mean">0%</div><div class="stat-label">Mean Score</div></div>
+    </div>
+    <button class="btn-download" onclick="exportCSV(false)">Download CSV Backup</button><br>
+    <button class="btn-download" style="background:var(--surface);border:1px solid var(--accent);color:var(--accent);" onclick="showScreen('study-screen')">Return to Study</button>
+  </div>
+</div>
+
+<!-- MODAL: Overwrite -->
+<div class="modal-overlay" id="modal-overwrite">
+  <div class="modal-box">
+    <div class="modal-icon">&#9888;</div>
+    <div class="modal-title">Response Already Recorded</div>
+    <div class="modal-body">You have already recorded a response for this case. Would you like to overwrite it?</div>
+    <div class="modal-actions">
+      <button class="btn-m-cancel" onclick="closeModal('modal-overwrite')">No — Keep Original</button>
+      <button class="btn-m-confirm" onclick="confirmOverwrite()">Yes, overwrite</button>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL: Exit -->
+<div class="modal-overlay" id="modal-exit">
+  <div class="modal-box danger-modal">
+    <div class="modal-icon">&#128682;</div>
+    <div class="modal-title">Exit Study</div>
+    <div class="modal-body">Any unsaved responses will be lost. Save your progress before exiting?</div>
+    <div class="modal-actions">
+      <button class="btn-m-cancel btn-m-danger" onclick="exitWithoutSave()">Exit Without Saving</button>
+      <button class="btn-m-confirm" onclick="saveAndExit()">Save &amp; Exit</button>
+    </div>
+  </div>
+</div>
+
+<!-- Save overlay -->
+<div class="save-overlay" id="save-overlay">
+  <div class="save-title">Saving responses...</div>
+  <div class="save-track"><div class="save-bar" id="save-bar"></div></div>
+  <div class="save-label" id="save-label">0%</div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<!-- ══ SURVEY MODAL ══ -->
+<div id="survey-modal">
+  <div class="survey-modal-box">
+    <div class="survey-modal-header">
+      <div>
+        <div class="survey-modal-title"><em>ARGUS</em> — Pre-Study Survey</div>
+        <div class="survey-modal-subtitle">Please complete the brief survey below before beginning the study.</div>
+      </div>
+    </div>
+    <div style="flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:24px;padding:40px;">
+      <div style="text-align:center;">
+        <div style="font-family:var(--serif);font-size:22px;font-weight:300;color:var(--text);margin-bottom:8px;">Pre-Study Survey</div>
+        <div style="font-size:12px;color:var(--text-muted);line-height:1.7;max-width:440px;">Please complete the brief survey before beginning. It will open in a new tab — return to this window when finished and click the button below.</div>
+      </div>
+      <a href="https://docs.google.com/forms/d/e/1FAIpQLSdj6mS5r2vaj5PItt_-JKKe1nPaI2ss0-9cfBA-JksHC6DtCA/viewform" target="_blank"
+        style="display:inline-flex;align-items:center;gap:10px;background:var(--accent);color:#000;border:none;font-family:var(--mono);font-size:12px;font-weight:500;letter-spacing:.12em;text-transform:uppercase;padding:14px 28px;cursor:pointer;text-decoration:none;transition:all .2s;"
+        onmouseover="this.style.background='#fff'" onmouseout="this.style.background='var(--accent)'">
+        &#128196; Open Survey in New Tab
+      </a>
+      <div style="font-size:10px;color:var(--text-dim);text-align:center;">The survey opens separately — your grading session remains open in this tab.</div>
+    </div>
+    <div class="survey-modal-footer">
+      <div class="survey-footer-note">Once you have submitted the survey, click the button to proceed to the study. Your survey responses are separate from your grading data.</div>
+      <div style="display:flex;flex-direction:column;gap:8px;flex-shrink:0;">
+        <button class="btn-survey-done" onclick="dismissSurvey()">I Have Completed the Survey Now &rarr;</button>
+        <button class="btn-survey-done" style="background:var(--surface2);border:1px solid var(--accent-mid);color:var(--accent);" onmouseover="this.style.background='var(--surface)'" onmouseout="this.style.background='var(--surface2)'" onclick="dismissSurvey()">I Have Previously Completed the Survey &rarr;</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+
+<script data-cfasync="false" src="/cdn-cgi/scripts/5c5dd728/cloudflare-static/email-decode.min.js"></script><script>
+// ── CONFIG ─────────────────────────────────────────────────
+const GOOGLE_SHEET_URL = 'https://script.google.com/macros/s/AKfycbyUyLbgqy9W42ayjmbPIJZ0GBIQWXovT7knDUNN2354FtYt87bvQWrZrwaUXqR5wrbj/exec';
+
+// ── PASSWORD ───────────────────────────────────────────────
+// SHA-256 of 'CERArgus2026!$%'
+const PASSWORD_HASH = '1a2b263203e40872f03cff92a645d0fd7ebf1525255cec9a5891a8d17f13643a';
+
+async function hashPassword(pw){
+  const enc = new TextEncoder();
+  const buf = await crypto.subtle.digest('SHA-256', enc.encode(pw));
+  return Array.from(new Uint8Array(buf)).map(b=>b.toString(16).padStart(2,'0')).join('');
+}
+
+// ── IMAGE BASE URL ─────────────────────────────────────────
+const IMAGE_BASE = 'https://argus-reader.github.io/argus_content.github.io/images/CASE_';
+
+// ── SESSION DEFINITIONS ────────────────────────────────────
+function buildCases(prefix, count){
+  var arr = [];
+  for(var i=1;i<=count;i++){
+    var num = String(i).padStart(3,'0');
+    var imgNum = String(Math.min(i,47)).padStart(3,'0');
+    arr.push({
+      id: prefix+'_'+num,
+      imageUrl: IMAGE_BASE+imgNum+'.jpg',
+      label: ''
+    });
+  }
+  return arr;
+}
+
+const SESSIONS = {
+  A: buildCases('CASE_A', 40),
+  B: buildCases('CASE_B', 40),
+  C: buildCases('CASE_C', 480),
+  D: buildCases('CASE_D', 480)
+};
+
+const SESSION_TOTALS = { A:40, B:40, C:480, D:480 };
+
+// ── STATE ──────────────────────────────────────────────────
+let currentSession = 'A';
+let CASES = SESSIONS['A'];
+let currentIndex = 0;
+let readerId = '';
+let responses = { A:{}, B:{}, C:{}, D:{} };
+let zoomLevel = 1;
+let pendingGrade = null;
+let isPanning = false, panStartX = 0, panStartY = 0, panOffsetX = 0, panOffsetY = 0;
+
+function ts(){ return new Date().toISOString(); }
+
+document.getElementById('case-count-display').textContent = 40+40+480+480;
+buildTicks();
+document.getElementById('reader-id').addEventListener('keydown', function(e){ if(e.key==='Enter') document.getElementById('study-password').focus(); });
+document.getElementById('study-password').addEventListener('keydown', function(e){ if(e.key==='Enter') startStudy(); });
+
+function buildTicks(){
+  var c=document.getElementById('slider-ticks');
+  for(var i=0;i<=20;i++){
+    var t=document.createElement('span');
+    t.style.left=(i*5)+'%';
+    if(i%5===0) t.classList.add('major');
+    c.appendChild(t);
+  }
+}
+
+// ── LOGIN ──────────────────────────────────────────────────
+async function startStudy(){
+  var v = document.getElementById('reader-id').value.trim();
+  var p = document.getElementById('study-password').value;
+  if(!v || !p){ document.getElementById('login-error').style.display='block'; return; }
+  var hashed = await hashPassword(p);
+  if(hashed !== PASSWORD_HASH){
+    document.getElementById('login-error').textContent = 'Incorrect password. Please try again.';
+    document.getElementById('login-error').style.display='block';
+    return;
+  }
+  readerId = v.toUpperCase();
+  document.getElementById('header-reader-id').textContent = readerId;
+  showScreen('study-screen');
+  switchSession('A');
+  // Show pre-study survey modal
+  document.getElementById('survey-modal').classList.add('active');
+}
+
+function dismissSurvey(){
+  document.getElementById('survey-modal').classList.remove('active');
+  showToast('Survey complete — welcome to ARGUS Stage I');
+}
+
+// ── SESSIONS ───────────────────────────────────────────────
+function switchSession(sess){
+  currentSession = sess;
+  CASES = SESSIONS[sess];
+  document.querySelectorAll('.session-tab').forEach(function(t){ t.classList.remove('active'); });
+  document.getElementById('tab-'+sess.toLowerCase()).classList.add('active');
+  currentIndex = 0;
+  loadCase(0);
+  updateTabProgress();
+}
+
+function updateTabProgress(){
+  ['A','B','C','D'].forEach(function(s){
+    var total = SESSION_TOTALS[s];
+    var done = Object.keys(responses[s]).length;
+    document.getElementById('tab-prog-'+s.toLowerCase()).textContent = done+'/'+total;
+  });
+}
+
+// ── CASE LOADING ───────────────────────────────────────────
+function loadCase(idx){
+  currentIndex = idx;
+  var c = CASES[idx];
+  document.getElementById('overlay-case-id').textContent = c.id;
+  panOffsetX=0; panOffsetY=0; zoomLevel=1;
+  var img = document.getElementById('case-image');
+  var ph  = document.getElementById('image-placeholder');
+  img.style.transform = 'scale(1) translate(0px,0px)';
+  if(c.imageUrl){ img.src=c.imageUrl; img.style.display='block'; ph.style.display='none'; }
+  else { img.style.display='none'; ph.style.display='flex'; }
+  var saved = responses[currentSession][c.id];
+  var sv = saved ? saved.score : 50;
+  document.getElementById('risk-slider').value = sv;
+  document.getElementById('manual-score').value = sv;
+  updateSlider(sv);
+  setRespStatus(!!saved);
+  var btn = document.getElementById('btn-submit');
+  if(saved){ btn.classList.add('graded'); btn.textContent='Update Response'; }
+  else { btn.classList.remove('graded'); btn.textContent='Record Response'; }
+  updateProgress();
+  document.getElementById('btn-prev').disabled = (idx===0);
+  document.getElementById('btn-next').disabled = (idx>=CASES.length-1 || !responses[currentSession][c.id]);
+  updateDragHint();
+}
+
+function updateDragHint(){
+  document.getElementById('drag-hint').style.display = zoomLevel > 1 ? 'inline' : 'none';
+}
+
+// ── PAN ────────────────────────────────────────────────────
+(function(){
+  var img = document.getElementById('case-image');
+  img.addEventListener('mousedown', function(e){
+    if(zoomLevel<=1) return;
+    isPanning=true; panStartX=e.clientX-panOffsetX; panStartY=e.clientY-panOffsetY;
+    img.style.cursor='grabbing'; e.preventDefault();
+  });
+  document.addEventListener('mousemove', function(e){
+    if(!isPanning) return;
+    panOffsetX=e.clientX-panStartX; panOffsetY=e.clientY-panStartY;
+    img.style.transform='scale('+zoomLevel+') translate('+panOffsetX/zoomLevel+'px,'+panOffsetY/zoomLevel+'px)';
+  });
+  document.addEventListener('mouseup', function(){ isPanning=false; document.getElementById('case-image').style.cursor='grab'; });
+})();
+
+// ── ZOOM ───────────────────────────────────────────────────
+function adjustZoom(d){
+  zoomLevel=Math.max(.5,Math.min(3,zoomLevel+d));
+  document.getElementById('case-image').style.transform='scale('+zoomLevel+') translate('+panOffsetX/zoomLevel+'px,'+panOffsetY/zoomLevel+'px)';
+  updateDragHint();
+}
+function resetZoom(){
+  zoomLevel=1; panOffsetX=0; panOffsetY=0;
+  document.getElementById('case-image').style.transform='scale(1) translate(0px,0px)';
+  updateDragHint();
+}
+
+// ── SLIDER ─────────────────────────────────────────────────
+function updateSlider(val){
+  val=Math.round(parseInt(val)/5)*5;
+  if(val<0)val=0; if(val>100)val=100;
+  document.getElementById('lh-display').textContent=val;
+  document.getElementById('risk-slider').value=val;
+  document.getElementById('manual-score').value=val;
+  document.getElementById('slider-fill').style.width=val+'%';
+  var color,label;
+  if(val<=45){color='#4af09a';label=val===0?'Definitely absent':val<=10?'Very unlikely':'Low likelihood';}
+  else if(val<=69){color='#f0a44a';label=val===50?'Uncertain':val<50?'Leaning absent':'Leaning present';}
+  else{color='#f06060';label=val>=90?'Definite defect':'High likelihood';}
+  document.getElementById('slider-fill').style.background=color;
+  document.getElementById('lh-display').style.color=color;
+  document.getElementById('lh-label').textContent=label;
+  document.getElementById('lh-label').style.color=color;
+}
+
+function onManualInput(val){
+  var n=parseInt(val);
+  if(isNaN(n)) return;
+  n=Math.round(n/5)*5;
+  if(n<0)n=0; if(n>100)n=100;
+  updateSlider(n);
+}
+
+// ── NAVIGATION ─────────────────────────────────────────────
+function navigate(dir){
+  var ni=currentIndex+dir;
+  if(ni>=0&&ni<CASES.length) loadCase(ni);
+}
+
+function setRespStatus(rec){
+  var el=document.getElementById('resp-status');
+  if(rec){el.className='resp-status recorded';el.textContent='Response recorded';}
+  else{el.className='resp-status not-rec';el.textContent='No response recorded';}
+}
+
+function updateProgress(){
+  var total=CASES.length, graded=Object.keys(responses[currentSession]).length, pct=Math.round((graded/total)*100);
+  document.getElementById('progress-label').textContent='Case '+(currentIndex+1)+' of '+total+' | '+graded+'/'+total+' recorded';
+  document.getElementById('progress-pct').textContent=pct+'%';
+  document.getElementById('progress-fill').style.width=pct+'%';
+  updateTabProgress();
+}
+
+// ── SUBMIT ─────────────────────────────────────────────────
+function attemptSubmit(){
+  var c=CASES[currentIndex];
+  var score=Math.round(parseInt(document.getElementById('risk-slider').value)/5)*5;
+  if(responses[currentSession][c.id]){
+    pendingGrade={caseId:c.id,score:score};
+    openModal('modal-overwrite');
+  } else {
+    commitGrade(c.id,score);
+  }
+}
+
+function confirmOverwrite(){
+  closeModal('modal-overwrite');
+  if(pendingGrade){ commitGrade(pendingGrade.caseId,pendingGrade.score); pendingGrade=null; }
+}
+
+function commitGrade(caseId,score){
+  responses[currentSession][caseId]={ score:score, timestamp:ts() };
+  submitToGoogleSheets(caseId, score);
+  setRespStatus(true);
+  var btn=document.getElementById('btn-submit');
+  btn.classList.add('graded'); btn.textContent='Update Response';
+  if(currentIndex<CASES.length-1) document.getElementById('btn-next').disabled=false;
+  updateProgress();
+  var done=Object.keys(responses[currentSession]).length;
+  if(done===CASES.length){ showToast('Session '+currentSession+' complete!'); setTimeout(showCompleteScreen,1200); }
+  else if(currentIndex<CASES.length-1){ showToast('Response recorded - advancing...'); setTimeout(function(){navigate(1);},600); }
+  else{ showToast('Response recorded'); }
+}
+
+// ── GOOGLE SHEETS ──────────────────────────────────────────
+async function submitToGoogleSheets(caseId, score){
+  var payload = {
+    timestamp:        ts(),
+    reader_id:        readerId,
+    session:          currentSession,
+    case_id:          caseId,
+    likelihood_score: score
+  };
+  try {
+    var resp = await fetch(GOOGLE_SHEET_URL, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload)
+    });
+    var result = await resp.json();
+    if(result.result === 'success'){
+      showToast('Saved \u2713');
+    } else {
+      console.warn('Sheets response:', result);
+      showToast('Check connection');
+    }
+  } catch(err){
+    console.error('Sheets error:', err);
+    showToast('Offline \u2014 saved locally');
+  }
+}
+
+// ── COMPLETE ───────────────────────────────────────────────
+function showCompleteScreen(){
+  var scores=Object.values(responses[currentSession]).map(function(r){return r.score;});
+  var mean=scores.length?Math.round(scores.reduce(function(a,b){return a+b;},0)/scores.length):0;
+  document.getElementById('stat-cases').textContent=scores.length;
+  document.getElementById('stat-mean').textContent=mean+'%';
+  showScreen('complete-screen');
+}
+
+// ── CSV EXPORT ─────────────────────────────────────────────
+function exportCSV(silent){
+  var rows=[
+    ['Study','ARGUS Stage I'],['Reader ID',readerId],['Export Date',ts()],[]
+  ];
+  ['A','B','C','D'].forEach(function(sess){
+    rows.push(['--- SESSION '+sess+' ---']);
+    rows.push(['Case ID','Likelihood Score (%)','Timestamp']);
+    SESSIONS[sess].forEach(function(c){
+      var r=responses[sess][c.id];
+      if(r){ rows.push([c.id,r.score,r.timestamp]); }
+      else { rows.push([c.id,'NOT ASSESSED','']); }
+    });
+    rows.push([]);
+  });
+  var csv=rows.map(function(r){return r.map(function(v){return '"'+String(v).replace(/"/g,'""')+'"';}).join(',');}).join('\n');
+  var blob=new Blob([csv],{type:'text/csv;charset=utf-8;'});
+  var url=URL.createObjectURL(blob);
+  var a=document.createElement('a');
+  a.href=url; a.download='argus_stage1_'+readerId+'_'+new Date().toISOString().slice(0,10)+'.csv';
+  a.click(); URL.revokeObjectURL(url);
+  if(!silent) showToast('CSV downloaded');
+}
+
+// ── SAVE / EXIT ────────────────────────────────────────────
+function triggerSave(cb){
+  var overlay=document.getElementById('save-overlay'),bar=document.getElementById('save-bar'),lbl=document.getElementById('save-label');
+  overlay.classList.add('active'); bar.style.width='0%'; lbl.textContent='0%';
+  var pct=0;
+  var iv=setInterval(function(){
+    pct+=Math.random()*18+8;
+    if(pct>=100){ pct=100; clearInterval(iv); bar.style.width='100%'; lbl.textContent='100%';
+      setTimeout(function(){ overlay.classList.remove('active'); exportCSV(true); showToast('Responses saved'); if(cb)cb(); },400);
+    } else { bar.style.width=pct+'%'; lbl.textContent=Math.round(pct)+'%'; }
+  },80);
+}
+
+function triggerExit(){ openModal('modal-exit'); }
+function exitWithoutSave(){ closeModal('modal-exit'); showScreen('login-screen'); responses={A:{},B:{},C:{},D:{}}; readerId=''; showToast('Session ended'); }
+function saveAndExit(){ closeModal('modal-exit'); triggerSave(function(){ showScreen('login-screen'); responses={A:{},B:{},C:{},D:{}}; readerId=''; }); }
+
+// ── UTILITIES ──────────────────────────────────────────────
+function openModal(id){ document.getElementById(id).classList.add('active'); }
+function closeModal(id){ document.getElementById(id).classList.remove('active'); }
+function showScreen(id){ document.querySelectorAll('.screen').forEach(function(s){s.classList.remove('active');}); document.getElementById(id).classList.add('active'); }
+var toastTimer;
+function showToast(msg){ var t=document.getElementById('toast'); t.textContent=msg; t.classList.add('show'); clearTimeout(toastTimer); toastTimer=setTimeout(function(){t.classList.remove('show');},2500); }
+</script>
+</body>
+</html>
